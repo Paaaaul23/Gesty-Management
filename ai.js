@@ -7,7 +7,13 @@
  * lectura local (NIF, IBAN, cuadre de importes). Si la IA falla, se usa la lectura local.
  */
 const path = require('node:path');
-const Anthropic = require('@anthropic-ai/sdk');
+// El SDK se carga al usarlo: si faltara, Gesty arranca igual y solo se desactiva la IA
+let AnthropicMod;
+function sdk() {
+  if (AnthropicMod === undefined) { try { AnthropicMod = require('@anthropic-ai/sdk'); } catch { AnthropicMod = null; } }
+  if (!AnthropicMod) throw new Error('falta la librería de la IA; ejecuta "npm install"');
+  return AnthropicMod;
+}
 const { getSetting } = require('./db');
 
 const MODELS = [
@@ -28,7 +34,7 @@ const isEnabled = () => config().enabled;
 
 let cached = { key: null, client: null };
 function getClient(apiKey) {
-  if (cached.key !== apiKey) cached = { key: apiKey, client: new Anthropic({ apiKey, timeout: 120_000, maxRetries: 2 }) };
+  if (cached.key !== apiKey) cached = { key: apiKey, client: new (sdk())({ apiKey, timeout: 120_000, maxRetries: 2 }) };
   return cached.client;
 }
 
@@ -128,7 +134,7 @@ async function callModel(client, model, params) {
     try {
       return await client.beta.messages.create({ ...params, model, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' });
     } catch (e) {
-      if (!(e instanceof Anthropic.BadRequestError)) throw e; // 400: se reintenta sin la opción de reserva
+      if (!(e instanceof sdk().BadRequestError)) throw e; // 400: se reintenta sin la opción de reserva
     }
   }
   return client.messages.create({ ...params, model });
@@ -186,7 +192,7 @@ async function testConnection({ apiKey, model } = {}) {
   const cfg = config();
   const key = apiKey || cfg.apiKey;
   if (!key) throw new Error('Falta la clave de la API');
-  const m = await new Anthropic({ apiKey: key, timeout: 20_000, maxRetries: 1 }).models.retrieve(model || cfg.model);
+  const m = await new (sdk())({ apiKey: key, timeout: 20_000, maxRetries: 1 }).models.retrieve(model || cfg.model);
   return { ok: true, model: m.id, name: m.display_name };
 }
 

@@ -5,7 +5,19 @@ Gestión para pequeños comercios. Entorno local.
 - **Panel de administrador** (`/admin`): alta, edición, suspensión y baja de clientes; ver sus locales, empleados y documentos; abrir el panel de cualquier cliente.
 - **Panel de cliente** (`/app`): resumen, captura inteligente, documentos (facturas, albaranes, pedidos), precisión del reconocimiento, locales y empleados, configuración.
 
-## Arrancar
+## Arrancar en Windows
+
+1. Instala **Node.js LTS** (22.13 o superior) desde https://nodejs.org, con las opciones por defecto.
+2. Haz doble clic en **`Iniciar Gesty.bat`**. Él solo:
+   - comprueba que Node.js está instalado y es suficientemente nuevo;
+   - instala o actualiza las dependencias si faltan o han cambiado;
+   - la primera vez crea la base de datos y **muestra las contraseñas** (apúntalas);
+   - arranca Gesty y abre el navegador en http://localhost:3000.
+3. Deja la ventana negra abierta mientras lo uses; al cerrarla, Gesty se detiene.
+
+Para descargar la última versión: doble clic en **`Actualizar Gesty.bat`** (necesita Git y que la carpeta se haya descargado con `git clone`). Tus datos, en `data/`, no se tocan.
+
+## Arrancar desde la terminal (cualquier sistema)
 
 Requiere Node.js 22.13 o superior (usa `node:sqlite`, no hace falta instalar ninguna base de datos).
 
@@ -15,12 +27,10 @@ npm run seed     # crea admin, cliente Torca 3D, local Torca 3D y empleado Javie
 npm start        # http://localhost:3000
 ```
 
-O doble clic en `Iniciar Gesty.bat`.
-
 `npm run seed` imprime las contraseñas generadas la primera vez. Para fijarlas tú:
 `ADMIN_PASSWORD=... CLIENT_PASSWORD=... npm run seed` (solo si los usuarios aún no existen).
 
-Los datos se guardan en `data/` (base de datos `gesty.db` y archivos subidos en `data/uploads`). Para empezar de cero, borra la carpeta `data/` y vuelve a ejecutar el seed.
+Los datos se guardan en `data/` (base de datos `gesty.db` y archivos subidos en `data/uploads`). Para empezar de cero, borra `data/gesty.db` y `data/uploads` (no `data/tessdata`) y vuelve a ejecutar el seed.
 
 ## Reconocimiento de documentos
 

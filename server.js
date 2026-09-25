@@ -467,4 +467,24 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: status >= 500 ? 'Error interno del servidor' : err.message });
 });
 
-app.listen(PORT, '127.0.0.1', () => console.log(`Gesty Management en http://localhost:${PORT}`));
+const URL_APP = `http://localhost:${PORT}`;
+// Abre el navegador cuando el servidor ya escucha (GESTY_OPEN=1 lo pone "Iniciar Gesty.bat")
+function openBrowser() {
+  if (process.env.GESTY_OPEN !== '1') return;
+  const { spawn } = require('node:child_process');
+  const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '""', URL_APP]] : process.platform === 'darwin' ? ['open', [URL_APP]] : ['xdg-open', [URL_APP]];
+  try { spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true }).on('error', () => {}).unref(); } catch {}
+}
+const server = app.listen(PORT, '127.0.0.1', () => {
+  console.log(`\n  Gesty Management está funcionando en ${URL_APP}`);
+  console.log('  Deja esta ventana abierta mientras lo uses. Para cerrarlo, cierra la ventana o pulsa Ctrl+C.\n');
+  openBrowser();
+});
+server.on('error', e => {
+  if (e.code === 'EADDRINUSE') {
+    console.log(`\n  El puerto ${PORT} ya está en uso: probablemente Gesty ya está abierto en otra ventana.`);
+    console.log(`  Abriendo ${URL_APP} en el navegador…\n`);
+    openBrowser();
+    setTimeout(() => process.exit(0), 500);
+  } else { console.error(e); process.exit(1); }
+});

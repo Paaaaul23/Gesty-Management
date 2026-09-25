@@ -1,0 +1,2 @@
+# Los .bat de Windows se guardan con saltos de línea CRLF tal cual
+*.bat -text

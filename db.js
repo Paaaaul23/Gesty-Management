@@ -2,6 +2,9 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
+// node:sqlite avisa de que es experimental en cada arranque; el aviso no aporta nada al usuario
+const emitWarning = process.emitWarning;
+process.emitWarning = (w, ...rest) => (String(w?.message ?? w).includes('SQLite') ? undefined : emitWarning.call(process, w, ...rest));
 const { DatabaseSync } = require('node:sqlite');
 
 const DATA_DIR = path.join(__dirname, 'data');
