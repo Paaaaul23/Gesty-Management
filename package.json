@@ -1,0 +1,21 @@
+{
+  "name": "gesty-management",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gesty Management — gestión para pequeños comercios (entorno local)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "lucide-static": "^1.48.0",
+    "multer": "^2.4.0",
+    "pdfjs-dist": "^6.3.289",
+    "tesseract.js": "^7.0.0"
+  }
+}
