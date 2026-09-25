@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gesty Management — Administración</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark"><svg class="i"><use href="/icons.svg#sprout"/></svg></div><div class="brand-text">Gesty<small>Administración</small></div></div>
+    <div class="section-label">Plataforma</div>
+    <nav class="nav" id="nav">
+      <button class="active" data-page="resumen"><svg class="i"><use href="/icons.svg#circle-gauge"/></svg><span class="nav-label">Resumen</span></button>
+      <button data-page="clientes"><svg class="i"><use href="/icons.svg#building"/></svg><span class="nav-label">Clientes</span></button>
+      <button data-page="cuenta"><svg class="i"><use href="/icons.svg#shield-check"/></svg><span class="nav-label">Mi cuenta</span></button>
+    </nav>
+    <div class="bottom">
+      <div class="user"><div class="avatar" id="meAvatar">A</div><div class="user-meta"><b id="meName">Administrador</b><span>Administrador</span></div></div>
+      <nav class="nav"><button onclick="logout()"><svg class="i"><use href="/icons.svg#log-out"/></svg><span class="nav-label">Cerrar sesión</span></button></nav>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="icon-btn" id="collapseBtn" title="Mostrar u ocultar menú"><svg class="i"><use href="/icons.svg#panel-left"/></svg></button>
+        <h1 id="pageTitle">Resumen</h1>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="themeBtn" title="Cambiar tema"></button>
+        <button class="btn primary" onclick="newClient()"><svg class="i"><use href="/icons.svg#plus"/></svg><span class="hide-sm">Nuevo cliente</span></button>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="page active" id="resumen">
+        <div class="eyebrow">Panel de administrador</div><h2>Tus clientes</h2>
+        <p class="sub">Controla las cuentas de tus clientes, sus locales, empleados y el uso del reconocimiento de documentos.</p>
+        <div class="grid stats" id="stats"></div>
+        <div class="card"><div class="card-head"><div><div class="card-title">Clientes recientes</div><div class="muted">Pulsa en un cliente para ver el detalle</div></div><button class="btn" onclick="go('clientes')">Ver todos</button></div>
+          <div class="table-wrap" id="recentClients"></div></div>
+      </div>
+
+      <div class="page" id="clientes">
+        <div id="clientList">
+          <div class="eyebrow">Cuentas</div><h2>Clientes</h2><p class="sub">Cada cliente tiene su propio panel con sus locales, empleados y documentos.</p>
+          <div class="card"><div class="table-wrap" id="clientsTable"></div></div>
+        </div>
+        <div id="clientDetail" class="hidden"></div>
+      </div>
+
+      <div class="page" id="cuenta">
+        <div class="eyebrow">Seguridad</div><h2>Mi cuenta</h2><p class="sub">Cambia la contraseña del administrador.</p>
+        <form class="card" id="pwdForm" style="max-width:520px">
+          <div class="form-grid">
+            <div class="field full"><label>Contraseña actual</label><input type="password" name="current" autocomplete="current-password" required></div>
+            <div class="field full"><label>Nueva contraseña (mín. 8)</label><input type="password" name="next" autocomplete="new-password" minlength="8" required></div>
+          </div>
+          <div class="actions" style="margin-top:16px"><button class="btn primary" type="submit"><svg class="i"><use href="/icons.svg#check"/></svg>Guardar</button></div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="modal" id="modal"></div>
+<div class="toast" id="toast"></div>
+<script src="/common.js"></script>
+<script>
+initTheme(); setupSidebar();
+const TITLES = { resumen: 'Resumen', clientes: 'Clientes', cuenta: 'Mi cuenta' };
+const PLANS = [['basico', 'Básico'], ['profesional', 'Profesional'], ['premium', 'Premium']];
+
+function go(page) {
+  $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  $$('.page').forEach(p => p.classList.toggle('active', p.id === page));
+  $('#pageTitle').textContent = TITLES[page];
+  if (page === 'clientes') { $('#clientList').classList.remove('hidden'); $('#clientDetail').classList.add('hidden'); }
+  if (innerWidth < 720) $('#sidebar').classList.remove('open');
+  refresh();
+}
+$$('#nav button').forEach(b => b.onclick = () => go(b.dataset.page));
+
+const statusBadge = s => s === 'activo' ? '<span class="badge green">Activo</span>' : '<span class="badge red">Suspendido</span>';
+
+function clientsTable(rows) {
+  if (!rows.length) return `<div class="empty">${icon('building')}<div>Todavía no hay clientes.</div><button class="btn primary" style="margin-top:12px" onclick="newClient()">${icon('plus')}Crear el primero</button></div>`;
+  return `<table class="table"><thead><tr><th>Cliente</th><th>Acceso</th><th>Plan</th><th class="num">Locales</th><th class="num">Empleados</th><th class="num">Documentos</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${rows.map(c => `<tr class="clickable" onclick="showClient(${c.id})">
+      <td><b>${esc(c.name)}</b>${c.nif ? `<div class="muted">${esc(c.nif)}</div>` : ''}</td>
+      <td class="muted">${esc(c.owner_email || '—')}</td>
+      <td>${esc((PLANS.find(p => p[0] === c.plan) || [0, c.plan])[1])}</td>
+      <td class="num">${c.locales}</td><td class="num">${c.employees}</td><td class="num">${c.documents}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td><a class="btn sm soft" href="/app?cid=${c.id}" onclick="event.stopPropagation()">${icon('log-in')}Abrir panel</a></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+async function refresh() {
+  try {
+    const [stats, clients] = await Promise.all([api('/api/admin/stats'), api('/api/admin/clients')]);
+    const card = (label, ic, v, foot) => `<div class="card"><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value">${v}</div><div class="stat-foot">${foot}</div></div>`;
+    $('#stats').innerHTML =
+      card('Clientes', 'building', stats.clients, `${stats.active} activos`) +
+      card('Locales', 'store', stats.locales, 'En todos los clientes') +
+      card('Empleados', 'users', stats.employees, 'Activos') +
+      card('Documentos', 'scan-line', stats.documents, `${stats.validated} validados`);
+    $('#recentClients').innerHTML = clientsTable(clients.slice(0, 5));
+    $('#clientsTable').innerHTML = clientsTable(clients);
+  } catch (e) { toast(e.message, true); }
+}
+
+let currentClient = null;
+async function showClient(id) {
+  go('clientes');
+  const d = await api('/api/admin/clients/' + id).catch(e => toast(e.message, true));
+  if (!d) return;
+  const c = d.client;
+  currentClient = c;
+  $('#clientList').classList.add('hidden');
+  const el = $('#clientDetail');
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <button class="btn sm" onclick="go('clientes')" style="margin-bottom:14px">${icon('arrow-left')}Volver a clientes</button>
+    <div class="eyebrow">Cliente</div><h2>${esc(c.name)} ${statusBadge(c.status)}</h2>
+    <p class="sub">Alta el ${fmtDate(c.created_at)} · ${d.documents.total || 0} documentos (${d.documents.validated || 0} validados)</p>
+    <div class="actions" style="margin-bottom:20px">
+      <a class="btn primary" href="/app?cid=${c.id}">${icon('log-in')}Abrir panel del cliente</a>
+      <button class="btn" onclick="editClient(currentClient)">${icon('pencil')}Editar datos</button>
+      <button class="btn" onclick="resetPassword(${c.id})">${icon('key-round')}Nueva contraseña</button>
+      <button class="btn" onclick="toggleStatus(${c.id}, '${c.status}')">${icon(c.status === 'activo' ? 'pause' : 'play')}${c.status === 'activo' ? 'Suspender' : 'Reactivar'}</button>
+      <button class="btn danger" onclick="deleteClient(currentClient.id, currentClient.name)">${icon('trash')}Eliminar</button>
+    </div>
+    <div class="grid halves">
+      <div class="card"><div class="card-title" style="margin-bottom:12px">Datos</div>
+        <table class="table"><tbody>
+          <tr><td class="muted">NIF</td><td>${esc(c.nif || '—')}</td></tr>
+          <tr><td class="muted">Email</td><td>${esc(c.email || '—')}</td></tr>
+          <tr><td class="muted">Teléfono</td><td>${esc(c.phone || '—')}</td></tr>
+          <tr><td class="muted">Plan</td><td>${esc((PLANS.find(p => p[0] === c.plan) || [0, c.plan])[1])}</td></tr>
+          <tr><td class="muted">Usuarios de acceso</td><td>${d.users.map(u => esc(u.email)).join('<br>') || '—'}</td></tr>
+        </tbody></table></div>
+      <div class="card"><div class="card-title" style="margin-bottom:12px">Locales (${d.locales.length})</div>
+        ${d.locales.length ? `<div class="list">${d.locales.map(l => `<div class="item">${icon('store')}<div class="item-body"><b>${esc(l.name)}</b><p>${esc([l.address, l.city].filter(Boolean).join(', ') || 'Sin dirección')}</p></div></div>`).join('')}</div>` : '<div class="empty">Sin locales</div>'}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="card-title" style="margin-bottom:12px">Empleados (${d.employees.length})</div>
+      ${d.employees.length ? `<div class="table-wrap"><table class="table"><thead><tr><th>Nombre</th><th>Puesto</th><th>Local</th><th>Contacto</th><th>Estado</th></tr></thead><tbody>
+        ${d.employees.map(e => `<tr><td><b>${esc(e.name)}</b></td><td>${esc(e.position || '—')}</td><td>${esc(e.local_name || '—')}</td><td class="muted">${esc([e.email, e.phone].filter(Boolean).join(' · ') || '—')}</td><td>${e.active ? '<span class="badge green">Activo</span>' : '<span class="badge gray">Baja</span>'}</td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="empty">Sin empleados</div>'}
+    </div>`;
+}
+
+function newClient() {
+  openModal('Nuevo cliente', [
+    field('name', 'Nombre del negocio', { required: true, full: true }),
+    field('nif', 'NIF / CIF'), field('phone', 'Teléfono'),
+    field('plan', 'Plan', { options: PLANS }), field('email', 'Email de contacto', { type: 'email' }),
+    '<div class="field full"><div class="section-label" style="padding:6px 0 0">Acceso al panel del cliente</div></div>',
+    field('owner_name', 'Nombre del responsable'), field('owner_email', 'Email de acceso', { type: 'email', required: true }),
+    field('owner_password', 'Contraseña inicial (mín. 8)', { type: 'text', required: true, full: true, value: Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6).toUpperCase() }),
+  ].join(''), async data => {
+    const r = await api('/api/admin/clients', { method: 'POST', body: data });
+    toast('Cliente creado. Acceso: ' + data.owner_email);
+    showClient(r.id);
+  }, 'Crear cliente');
+}
+
+function editClient(c) {
+  openModal('Editar cliente', [
+    field('name', 'Nombre del negocio', { value: c.name, required: true, full: true }),
+    field('nif', 'NIF / CIF', { value: c.nif }), field('phone', 'Teléfono', { value: c.phone }),
+    field('email', 'Email de contacto', { value: c.email, type: 'email' }), field('plan', 'Plan', { value: c.plan, options: PLANS }),
+  ].join(''), async data => {
+    await api('/api/admin/clients/' + c.id, { method: 'PATCH', body: data });
+    toast('Cliente actualizado'); showClient(c.id);
+  });
+}
+
+function resetPassword(id) {
+  openModal('Nueva contraseña del cliente', field('password', 'Nueva contraseña (mín. 8)', { full: true, required: true }), async data => {
+    await api(`/api/admin/clients/${id}/password`, { method: 'POST', body: data });
+    toast('Contraseña actualizada');
+  });
+}
+
+async function toggleStatus(id, status) {
+  const next = status === 'activo' ? 'suspendido' : 'activo';
+  if (next === 'suspendido' && !confirm('El cliente no podrá entrar en su panel hasta que lo reactives. ¿Suspender?')) return;
+  try { await api('/api/admin/clients/' + id, { method: 'PATCH', body: { status: next } }); toast(next === 'activo' ? 'Cliente reactivado' : 'Cliente suspendido'); showClient(id); }
+  catch (e) { toast(e.message, true); }
+}
+
+async function deleteClient(id, name) {
+  if (prompt(`Se borrarán el cliente, sus locales, empleados y documentos.\nEscribe "${name}" para confirmar:`) !== name) return;
+  try { await api('/api/admin/clients/' + id, { method: 'DELETE' }); toast('Cliente eliminado'); go('clientes'); }
+  catch (e) { toast(e.message, true); }
+}
+
+$('#pwdForm').onsubmit = async e => {
+  e.preventDefault();
+  try { await api('/api/me/password', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); toast('Contraseña actualizada'); }
+  catch (err) { toast(err.message, true); }
+};
+
+api('/api/me').then(me => {
+  if (me.role !== 'admin') location.href = '/app';
+  $('#meName').textContent = me.name; $('#meAvatar').textContent = initials(me.name);
+});
+refresh();
+</script>
+</body>
+</html>

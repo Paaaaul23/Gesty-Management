@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gesty Management</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark"><svg class="i"><use href="/icons.svg#sprout"/></svg></div><div class="brand-text">Gesty<small>Management</small></div></div>
+    <div class="section-label">Principal</div>
+    <nav class="nav" id="nav">
+      <button class="active" data-page="resumen"><svg class="i"><use href="/icons.svg#layout-dashboard"/></svg><span class="nav-label">Resumen</span></button>
+      <button data-page="captura"><svg class="i"><use href="/icons.svg#scan-line"/></svg><span class="nav-label">Captura inteligente</span></button>
+      <button data-page="documentos" data-type=""><svg class="i"><use href="/icons.svg#folder-open"/></svg><span class="nav-label">Documentos</span></button>
+      <button data-page="documentos" data-type="factura"><svg class="i"><use href="/icons.svg#receipt-text"/></svg><span class="nav-label">Facturas</span></button>
+      <button data-page="documentos" data-type="albaran"><svg class="i"><use href="/icons.svg#truck"/></svg><span class="nav-label">Albaranes</span></button>
+      <button data-page="documentos" data-type="pedido"><svg class="i"><use href="/icons.svg#clipboard-list"/></svg><span class="nav-label">Pedidos</span></button>
+      <button data-page="precision"><svg class="i"><use href="/icons.svg#target"/></svg><span class="nav-label">Precisión del reconocimiento</span></button>
+    </nav>
+    <div class="section-label">Negocio</div>
+    <nav class="nav">
+      <button data-page="locales"><svg class="i"><use href="/icons.svg#store"/></svg><span class="nav-label">Locales y empleados</span></button>
+      <button data-page="config"><svg class="i"><use href="/icons.svg#settings"/></svg><span class="nav-label">Configuración</span></button>
+    </nav>
+    <div class="bottom">
+      <div class="user"><div class="avatar" id="meAvatar">G</div><div class="user-meta"><b id="meName">—</b><span id="meRole">Cliente</span></div></div>
+      <nav class="nav"><button onclick="logout()"><svg class="i"><use href="/icons.svg#log-out"/></svg><span class="nav-label">Cerrar sesión</span></button></nav>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="banner hidden" id="adminBanner"></div>
+    <header class="topbar">
+      <div class="top-left">
+        <button class="icon-btn" id="collapseBtn" title="Mostrar u ocultar menú"><svg class="i"><use href="/icons.svg#panel-left"/></svg></button>
+        <h1 id="pageTitle">Resumen</h1>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="themeBtn" title="Cambiar tema"></button>
+        <button class="btn primary" onclick="go('captura')"><svg class="i"><use href="/icons.svg#upload"/></svg><span class="hide-sm">Subir documento</span></button>
+      </div>
+    </header>
+
+    <section class="content">
+      <!-- RESUMEN -->
+      <div class="page active" id="resumen">
+        <div class="eyebrow">Visión general</div><h2 id="hello">Hola</h2><p class="sub">Todo lo importante de tu negocio en un solo lugar.</p>
+        <div class="grid stats" id="stats"></div>
+        <div class="grid two">
+          <div class="card"><div class="card-head"><div><div class="card-title">Últimos documentos</div><div class="muted">Capturados con el reconocimiento automático</div></div><button class="btn" onclick="go('documentos')">Ver todos</button></div><div id="recent"></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Por tipo</div><div class="muted">Documentos capturados</div></div></div><div id="byType"></div></div>
+        </div>
+      </div>
+
+      <!-- CAPTURA -->
+      <div class="page" id="captura">
+        <div class="eyebrow">Automatización</div><h2>Captura inteligente</h2>
+        <p class="sub">Sube una factura, albarán o pedido (PDF o foto). El sistema lee el texto, extrae proveedor, NIF, número, fecha e importes y comprueba que cuadren. Después revisas y corriges: cada corrección cuenta para medir la precisión real.</p>
+        <div class="grid two">
+          <div class="card">
+            <div class="dropzone" id="dropzone">
+              <svg class="i big"><use href="/icons.svg#file-up"/></svg>
+              <h3>Arrastra aquí uno o varios documentos</h3><p>PDF, JPG, PNG, WEBP, TIFF, XML o TXT · hasta 20 MB</p>
+              <div class="actions" style="justify-content:center;margin-top:14px">
+                <button class="btn primary" id="uploadBtn"><svg class="i"><use href="/icons.svg#folder-up"/></svg>Seleccionar archivos</button>
+                <div class="field" style="min-width:180px;text-align:left"><select id="uploadLocal" title="Local"></select></div>
+              </div>
+              <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.gif,.xml,.txt">
+            </div>
+            <div id="queue" class="list" style="margin-top:14px"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><div class="card-title">Cómo se procesa</div><div class="muted">Qué ocurre al subir un documento</div></div></div>
+            <div class="list">
+              <div class="item"><span class="badge green">1</span><div class="item-body"><b>Leer el texto</b><p>PDF digital: texto directo · Foto o escaneo: OCR en español</p></div></div>
+              <div class="item"><span class="badge green">2</span><div class="item-body"><b>Identificar el documento</b><p>Factura, albarán, pedido o presupuesto</p></div></div>
+              <div class="item"><span class="badge green">3</span><div class="item-body"><b>Extraer campos</b><p>Proveedor, NIF, número, fechas, base, IVA, total, pago</p></div></div>
+              <div class="item"><span class="badge green">4</span><div class="item-body"><b>Validar</b><p>Dígito de control del NIF y cuadre base + IVA = total</p></div></div>
+              <div class="item"><span class="badge teal">5</span><div class="item-body"><b>Revisión humana</b><p>Corriges lo que falle y se registra la precisión por campo</p></div></div>
+            </div>
+            <p class="muted" style="margin:14px 0 0">La primera lectura por OCR descarga el modelo de idioma español (unos 20 MB) y tarda algo más.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCUMENTOS -->
+      <div class="page" id="documentos">
+        <div class="eyebrow">Archivo</div><h2 id="docsTitle">Documentos</h2><p class="sub">Documentos capturados, su estado de revisión y los datos reconocidos.</p>
+        <div class="card">
+          <div class="card-head"><div class="tabs" id="docTabs"></div><button class="btn primary" onclick="go('captura')"><svg class="i"><use href="/icons.svg#plus"/></svg>Subir</button></div>
+          <div class="table-wrap" id="docsTable"></div>
+        </div>
+      </div>
+
+      <!-- REVISIÓN DE UN DOCUMENTO -->
+      <div class="page" id="revision"></div>
+
+      <!-- PRECISIÓN -->
+      <div class="page" id="precision">
+        <div class="eyebrow">Control de calidad</div><h2>Precisión del reconocimiento</h2>
+        <p class="sub">Compara lo que extrajo el sistema con lo que validaste. Solo cuentan los documentos validados. <b>Correcto</b>: coincide · <b>Corregido</b>: lo leyó mal · <b>No detectado</b>: no lo encontró · <b>Sobrante</b>: extrajo un valor que borraste.</p>
+        <div id="accuracy"></div>
+      </div>
+
+      <!-- LOCALES Y EMPLEADOS -->
+      <div class="page" id="locales">
+        <div class="eyebrow">Negocio</div><h2>Locales y empleados</h2><p class="sub">Tus establecimientos y las personas que trabajan en cada uno.</p>
+        <div class="card" style="margin-bottom:16px"><div class="card-head"><div class="card-title">Locales</div><button class="btn primary" onclick="editLocal()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo local</button></div><div id="localesList"></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Empleados</div><button class="btn primary" onclick="editEmployee()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo empleado</button></div><div class="table-wrap" id="employeesTable"></div></div>
+      </div>
+
+      <!-- CONFIGURACIÓN -->
+      <div class="page" id="config">
+        <div class="eyebrow">Sistema</div><h2>Configuración</h2><p class="sub">Datos de la empresa. El NIF se usa para distinguir tus propios datos de los del proveedor al leer documentos.</p>
+        <div class="grid halves">
+          <form class="card" id="companyForm"></form>
+          <form class="card" id="pwdForm">
+            <div class="card-title" style="margin-bottom:14px">Contraseña de acceso</div>
+            <div class="form-grid">
+              <div class="field full"><label>Contraseña actual</label><input type="password" name="current" autocomplete="current-password" required></div>
+              <div class="field full"><label>Nueva contraseña (mín. 8)</label><input type="password" name="next" autocomplete="new-password" minlength="8" required></div>
+            </div>
+            <div class="actions" style="margin-top:16px"><button class="btn primary" type="submit">Cambiar contraseña</button></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="modal" id="modal"></div>
+<div class="toast" id="toast"></div>
+<script src="/common.js"></script>
+<script>
+initTheme(); setupSidebar();
+
+const CID = new URLSearchParams(location.search).get('cid');
+const capi = (p, o) => api('/api/c' + p + (CID ? (p.includes('?') ? '&' : '?') + 'cid=' + encodeURIComponent(CID) : ''), o);
+const fileUrl = id => `/api/c/documents/${id}/file` + (CID ? `?cid=${encodeURIComponent(CID)}` : '');
+
+const TITLES = { resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', precision: 'Precisión del reconocimiento', locales: 'Locales y empleados', config: 'Configuración' };
+const TYPE_TITLES = { '': 'Documentos', factura: 'Facturas', albaran: 'Albaranes', pedido: 'Pedidos', presupuesto: 'Presupuestos' };
+const FIELD_LABELS = { proveedor: 'Proveedor / emisor', nif: 'NIF / CIF', numero: 'Número', fecha: 'Fecha', vencimiento: 'Vencimiento', base: 'Base imponible', iva_tipo: 'Tipo IVA %', iva: 'Cuota IVA', total: 'Total', forma_pago: 'Forma de pago', iban: 'IBAN' };
+const NUM_FIELDS = ['base', 'iva_tipo', 'iva', 'total'];
+let locales = [], docType = '';
+
+function go(page, opts = {}) {
+  if (page === 'documentos') docType = opts.type ?? docType;
+  $$('.nav button[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page && (page !== 'documentos' || (b.dataset.type || '') === docType)));
+  $$('.page').forEach(p => p.classList.toggle('active', p.id === page));
+  $('#pageTitle').textContent = page === 'documentos' ? TYPE_TITLES[docType] : TITLES[page];
+  if (innerWidth < 720) $('#sidebar').classList.remove('open');
+  scrollTo(0, 0);
+  ({ resumen: loadSummary, documentos: loadDocs, precision: loadAccuracy, locales: loadLocales, config: loadCompany, captura: loadLocalSelect })[page]?.();
+}
+$$('.nav button[data-page]').forEach(b => b.onclick = () => go(b.dataset.page, { type: b.dataset.type || '' }));
+
+const statusBadge = s => s === 'validado' ? `<span class="badge green">${icon('circle-check')}Validado</span>` : `<span class="badge amber">${icon('clock')}Por revisar</span>`;
+const typeLabel = t => DOC_TYPES[t] || 'Sin clasificar';
+const scoreBadge = s => s === null || s === undefined ? '' : `<span class="badge ${s >= 85 ? 'green' : s >= 60 ? 'amber' : 'red'}">${s}%</span>`;
+const pct = v => v === null || v === undefined ? '—' : String(v).replace('.', ',') + '%';
+
+// ---------------------------------------------------------------- resumen
+async function loadSummary() {
+  try {
+    const s = await capi('/summary');
+    const card = (label, ic, v, foot) => `<div class="card"><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value">${v}</div><div class="stat-foot">${foot}</div></div>`;
+    $('#stats').innerHTML =
+      card('Locales', 'store', s.locales, 'Establecimientos') +
+      card('Empleados', 'users', s.employees, 'Activos') +
+      card('Documentos', 'files', s.documents, `${s.pending} por revisar`) +
+      card('Precisión', 'target', pct(s.accuracy), s.accuracy === null ? 'Valida documentos para medirla' : 'Campos correctos sin corregir');
+    $('#recent').innerHTML = s.recent.length ? `<div class="list">${s.recent.map(d => `
+      <div class="item clickable" style="cursor:pointer" onclick="openDoc(${d.id})"><div class="dot"></div><div class="item-body"><b>${esc(d.filename)}</b><p>${typeLabel(d.doc_type)} · ${fmtDate(d.created_at)}</p></div>${scoreBadge(d.score)}${statusBadge(d.status)}</div>`).join('')}</div>`
+      : `<div class="empty">${icon('scan-line')}<div>Aún no hay documentos.</div><button class="btn primary" style="margin-top:12px" onclick="go('captura')">${icon('upload')}Subir el primero</button></div>`;
+    const total = s.byType.reduce((a, b) => a + b.n, 0);
+    $('#byType').innerHTML = total ? `<div class="list">${s.byType.sort((a, b) => b.n - a.n).map(t => `
+      <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><b>${typeLabel(t.t === 'otro' ? null : t.t)}</b><span class="muted">${t.n}</span></div><div class="meter"><span style="width:${t.n / total * 100}%"></span></div></div>`).join('')}</div>`
+      : '<div class="empty">Sin datos todavía</div>';
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------- captura
+async function loadLocalSelect() {
+  locales = await capi('/locales').catch(() => []);
+  $('#uploadLocal').innerHTML = `<option value="">Sin asignar a un local</option>` + locales.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
+  if (locales.length === 1) $('#uploadLocal').value = locales[0].id;
+}
+const dz = $('#dropzone'), fi = $('#fileInput');
+$('#uploadBtn').onclick = () => fi.click();
+fi.onchange = () => { uploadFiles([...fi.files]); fi.value = ''; };
+['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+dz.addEventListener('drop', e => uploadFiles([...e.dataTransfer.files]));
+
+async function uploadFiles(files) {
+  if (!files.length) return;
+  let last = null;
+  for (const f of files) {
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.innerHTML = `<span class="spinner"></span><div class="item-body"><b>${esc(f.name)}</b><p>Leyendo y extrayendo datos…</p></div>`;
+    $('#queue').prepend(row);
+    const fd = new FormData();
+    fd.append('local_id', $('#uploadLocal').value);
+    fd.append('file', f);
+    try {
+      const d = await capi('/documents', { method: 'POST', body: fd });
+      last = d;
+      const nf = Object.values(d.extracted?.fields || {}).filter(v => v !== null && v !== '').length;
+      row.innerHTML = `${icon('file-check')}<div class="item-body"><b>${esc(f.name)}</b><p>${typeLabel(d.doc_type)} · ${nf} campos detectados · ${(d.extracted?.ms / 1000).toFixed(1)} s</p></div>${scoreBadge(d.extracted?.score)}<button class="btn sm soft" onclick="openDoc(${d.id})">Revisar</button>`;
+    } catch (e) {
+      row.innerHTML = `${icon('circle-alert')}<div class="item-body"><b>${esc(f.name)}</b><p style="color:var(--red)">${esc(e.message)}</p></div>`;
+    }
+  }
+  if (files.length === 1 && last) openDoc(last.id);
+}
+
+// ---------------------------------------------------------------- documentos
+async function loadDocs() {
+  $('#docsTitle').textContent = TYPE_TITLES[docType];
+  $('#docTabs').innerHTML = Object.entries(TYPE_TITLES).map(([k, v]) => `<button class="${k === docType ? 'active' : ''}" onclick="go('documentos',{type:'${k}'})">${v}</button>`).join('');
+  $('#docsTable').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  try {
+    const docs = await capi('/documents' + (docType ? '?type=' + docType : ''));
+    if (!docs.length) { $('#docsTable').innerHTML = `<div class="empty">${icon('folder-open')}<div>No hay ${TYPE_TITLES[docType].toLowerCase()} todavía.</div></div>`; return; }
+    $('#docsTable').innerHTML = `<table class="table"><thead><tr><th>Archivo</th><th>Tipo</th><th>Proveedor</th><th>Número</th><th>Fecha doc.</th><th class="num">Total</th><th>Lectura</th><th>Estado</th></tr></thead><tbody>
+      ${docs.map(d => { const f = (d.corrected || d.extracted)?.fields || {}; const t = d.corrected?.doc_type || d.doc_type; return `<tr class="clickable" onclick="openDoc(${d.id})">
+        <td><b>${esc(d.filename)}</b><div class="muted">Subido ${fmtDate(d.created_at)}</div></td>
+        <td>${typeLabel(t)}</td><td>${esc(f.proveedor || '—')}</td><td>${esc(f.numero || '—')}</td><td>${esc(f.fecha || '—')}</td>
+        <td class="num">${money(f.total)}</td><td>${scoreBadge(d.extracted?.score)}</td><td>${statusBadge(d.status)}</td></tr>`; }).join('')}
+    </tbody></table>`;
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------- revisión
+let currentDoc = null;
+async function openDoc(id) {
+  go('revision');
+  $('#pageTitle').textContent = 'Revisión de documento';
+  $('#revision').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  try {
+    const [d] = await Promise.all([capi('/documents/' + id), locales.length ? null : loadLocalSelect()]);
+    currentDoc = d;
+    renderDoc(d);
+  } catch (e) { toast(e.message, true); }
+}
+
+function renderDoc(d) {
+  const ex = d.extracted || { fields: {}, checks: [] };
+  const base = d.corrected || ex;
+  const isPdf = /\.pdf$/i.test(d.filename), isImg = /\.(jpe?g|png|webp|gif|bmp)$/i.test(d.filename);
+  const preview = isPdf ? `<iframe class="preview" src="${fileUrl(d.id)}" title="Documento"></iframe>`
+    : isImg ? `<img class="preview" src="${fileUrl(d.id)}" alt="Documento">`
+    : `<pre class="raw" style="max-height:520px">${esc(d.raw_text)}</pre>`;
+  const fieldInput = k => {
+    const v = base.fields?.[k];
+    const orig = ex.fields?.[k];
+    const shown = v === null || v === undefined ? '' : NUM_FIELDS.includes(k) ? String(v) : v;
+    return `<div class="field ${orig === null || orig === undefined || orig === '' ? 'missing' : ''}" data-key="${k}">
+      <label>${FIELD_LABELS[k]}<span class="muted" style="text-transform:none;font-weight:600" title="Valor que leyó el sistema">${orig === null || orig === undefined || orig === '' ? 'no detectado' : ''}${(ex.derived || []).includes(k) ? 'calculado' : ''}</span></label>
+      <input name="${k}" value="${esc(shown)}" ${NUM_FIELDS.includes(k) ? 'inputmode="decimal"' : ''} data-orig="${esc(orig ?? '')}"></div>`;
+  };
+  const checks = (ex.checks || []).map(c => `<div class="check ${c.warn ? 'warn' : c.ok ? 'ok' : 'bad'}">${icon(c.warn ? 'info' : c.ok ? 'circle-check' : 'circle-x')}<span>${esc(c.msg)}</span></div>`).join('');
+  const lines = ex.lines?.length ? `<table class="table"><thead><tr><th>Descripción</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Importe</th></tr></thead><tbody>
+    ${ex.lines.map(l => `<tr><td>${esc(l.descripcion)}</td><td class="num">${l.cantidad ?? '—'}</td><td class="num">${l.precio !== null && l.precio !== undefined ? money(l.precio) : '—'}</td><td class="num">${money(l.importe)}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty">No se han detectado líneas de detalle</div>';
+
+  $('#revision').innerHTML = `
+    <button class="btn sm" onclick="go('documentos')" style="margin-bottom:14px">${icon('arrow-left')}Volver a documentos</button>
+    <div class="eyebrow">${typeLabel(base.doc_type || d.doc_type)} · ${esc(methodLabel(ex.method))}</div>
+    <h2 style="word-break:break-word">${esc(d.filename)}</h2>
+    <p class="sub">${statusBadge(d.status)} ${scoreBadge(ex.score)} <span class="muted">Lectura automática${d.ocr_confidence !== null ? ` · confianza OCR ${Math.round(d.ocr_confidence)}%` : ''}${ex.ms ? ` · ${(ex.ms / 1000).toFixed(1)} s` : ''}</span></p>
+    <div class="grid halves">
+      <div class="card">
+        <div class="tabs"><button class="active" data-tab="prev">Original</button><button data-tab="raw">Texto leído</button><button data-tab="lines">Líneas (${ex.lines?.length || 0})</button></div>
+        <div data-pane="prev">${preview}</div>
+        <div data-pane="raw" class="hidden"><pre class="raw">${esc(d.raw_text || '(sin texto)')}</pre></div>
+        <div data-pane="lines" class="hidden table-wrap">${lines}</div>
+      </div>
+      <form class="card" id="reviewForm">
+        <div class="card-head"><div><div class="card-title">Datos reconocidos</div><div class="muted">Corrige lo que no esté bien y valida. Los campos corregidos se marcan en naranja.</div></div></div>
+        <div class="form-grid">
+          <div class="field"><label>Tipo de documento</label><select name="doc_type">${Object.entries(DOC_TYPES).map(([k, v]) => `<option value="${k}" ${k === (base.doc_type || d.doc_type) ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+          <div class="field"><label>Local</label><select name="local_id"><option value="">Sin asignar</option>${locales.map(l => `<option value="${l.id}" ${l.id === d.local_id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>
+          ${Object.keys(FIELD_LABELS).map(fieldInput).join('')}
+          <div class="field full"><label>Nota de la prueba (opcional)</label><input name="note" value="${esc(d.corrected?.note || '')}" placeholder="Ej.: foto con poca luz, factura de dos páginas…"></div>
+        </div>
+        <div style="margin-top:14px"><div class="card-title" style="margin-bottom:4px">Comprobaciones automáticas</div>${checks || '<div class="muted">—</div>'}</div>
+        <div class="actions" style="margin-top:16px">
+          <button class="btn primary" type="submit">${icon('circle-check')}${d.status === 'validado' ? 'Guardar corrección' : 'Validar datos'}</button>
+          <button class="btn" type="button" onclick="reanalyze(${d.id})">${icon('refresh-cw')}Volver a leer</button>
+          <button class="btn danger" type="button" onclick="deleteDoc(${d.id})">${icon('trash')}Eliminar</button>
+        </div>
+      </form>
+    </div>`;
+
+  $$('#revision .tabs button').forEach(b => b.onclick = () => {
+    $$('#revision .tabs button').forEach(x => x.classList.toggle('active', x === b));
+    $$('#revision [data-pane]').forEach(p => p.classList.toggle('hidden', p.dataset.pane !== b.dataset.tab));
+  });
+  const markChanged = inp => {
+    const o = inp.dataset.orig, v = inp.value.trim();
+    const same = NUM_FIELDS.includes(inp.name) ? (o === '' && v === '') || (o !== '' && v !== '' && Math.abs(Number(o) - Number(v.replace(',', '.'))) < 0.011) : o.trim() === v;
+    inp.closest('.field').classList.toggle('changed', !same);
+  };
+  $$('#reviewForm [data-orig]').forEach(inp => { markChanged(inp); inp.oninput = () => markChanged(inp); });
+  $('#reviewForm').onsubmit = async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    const fields = {};
+    for (const k of Object.keys(FIELD_LABELS)) fields[k] = data[k];
+    try {
+      const saved = await capi(`/documents/${d.id}/validate`, { method: 'PUT', body: { doc_type: data.doc_type, local_id: data.local_id, note: data.note, fields } });
+      currentDoc = saved; renderDoc(saved);
+      const changed = $$('#reviewForm .field.changed').length;
+      toast(changed ? `Validado con ${changed} corrección${changed > 1 ? 'es' : ''}` : 'Validado: todos los campos eran correctos');
+    } catch (err) { toast(err.message, true); }
+  };
+}
+const methodLabel = m => ({ 'pdf-texto': 'PDF con texto', 'pdf-ocr': 'PDF escaneado (OCR)', ocr: 'Imagen (OCR)', texto: 'Texto', error: 'Error de lectura' })[m] || 'Lectura';
+
+async function reanalyze(id) {
+  toast('Volviendo a leer el documento…');
+  try { const d = await capi(`/documents/${id}/reanalyze`, { method: 'POST' }); renderDoc(d); toast('Lectura actualizada'); }
+  catch (e) { toast(e.message, true); }
+}
+async function deleteDoc(id) {
+  if (!confirm('¿Eliminar este documento y su archivo?')) return;
+  try { await capi('/documents/' + id, { method: 'DELETE' }); toast('Documento eliminado'); go('documentos'); }
+  catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------- precisión
+async function loadAccuracy() {
+  const el = $('#accuracy');
+  el.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  try {
+    const a = await capi('/accuracy');
+    if (!a.documents) { el.innerHTML = `<div class="card"><div class="empty">${icon('target')}<div>Todavía no has validado ningún documento.</div><p>Sube documentos reales en <b>Captura inteligente</b>, revisa los datos y pulsa <b>Validar</b>.</p><button class="btn primary" onclick="go('captura')">${icon('upload')}Empezar pruebas</button></div></div>`; return; }
+    const keys = ['doc_type', ...Object.keys(FIELD_LABELS)];
+    const label = k => k === 'doc_type' ? 'Tipo de documento' : FIELD_LABELS[k];
+    const rows = keys.map(k => { const p = a.per[k]; const n = p.ok + p.wrong + p.missing; return { k, ...p, n, rate: n ? p.ok / n * 100 : null }; });
+    const cell = s => ({ ok: `<span class="badge green" title="Correcto">${icon('check')}</span>`, wrong: `<span class="badge red" title="Corregido">${icon('x')}</span>`, missing: `<span class="badge amber" title="No detectado">${icon('minus')}</span>`, extra: `<span class="badge gray" title="Sobrante">+</span>` })[s] || '<span class="muted">·</span>';
+    el.innerHTML = `
+      <div class="grid stats">
+        <div class="card"><div class="stat-top"><span>Precisión global</span><span class="stat-icon">${icon('target')}</span></div><div class="stat-value">${pct(a.overall)}</div><div class="stat-foot">Campos correctos sin tocar</div></div>
+        <div class="card"><div class="stat-top"><span>Documentos validados</span><span class="stat-icon">${icon('file-check')}</span></div><div class="stat-value">${a.documents}</div><div class="stat-foot">Muestra de la prueba</div></div>
+        <div class="card"><div class="stat-top"><span>Mejor campo</span><span class="stat-icon">${icon('trending-up')}</span></div><div class="stat-value" style="font-size:20px">${esc(label(rows.filter(r => r.n).sort((x, y) => y.rate - x.rate)[0]?.k))}</div><div class="stat-foot">${pct(Math.round(rows.filter(r => r.n).sort((x, y) => y.rate - x.rate)[0]?.rate * 10) / 10)}</div></div>
+        <div class="card"><div class="stat-top"><span>Campo más débil</span><span class="stat-icon">${icon('trending-down')}</span></div><div class="stat-value" style="font-size:20px">${esc(label(rows.filter(r => r.n).sort((x, y) => x.rate - y.rate)[0]?.k))}</div><div class="stat-foot">${pct(Math.round(rows.filter(r => r.n).sort((x, y) => x.rate - y.rate)[0]?.rate * 10) / 10)}</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px"><div class="card-title" style="margin-bottom:12px">Por campo</div><div class="table-wrap"><table class="table">
+        <thead><tr><th>Campo</th><th style="width:30%">Acierto</th><th class="num">Correcto</th><th class="num">Corregido</th><th class="num">No detectado</th><th class="num">Sobrante</th></tr></thead><tbody>
+        ${rows.map(r => `<tr><td><b>${label(r.k)}</b></td><td>${r.n ? `<div style="display:flex;align-items:center;gap:8px"><div class="meter" style="flex:1"><span style="width:${r.rate}%;background:${r.rate >= 85 ? 'var(--green)' : r.rate >= 60 ? '#f59e0b' : 'var(--red)'}"></span></div><span style="min-width:44px;text-align:right">${pct(Math.round(r.rate * 10) / 10)}</span></div>` : '<span class="muted">sin datos</span>'}</td>
+          <td class="num">${r.ok}</td><td class="num">${r.wrong}</td><td class="num">${r.missing}</td><td class="num">${r.extra}</td></tr>`).join('')}
+        </tbody></table></div></div>
+      <div class="card"><div class="card-title" style="margin-bottom:12px">Por documento</div><div class="table-wrap"><table class="table">
+        <thead><tr><th>Documento</th>${keys.map(k => `<th title="${esc(label(k))}">${esc(label(k).split(' ')[0])}</th>`).join('')}</tr></thead><tbody>
+        ${a.detail.map(r => `<tr class="clickable" onclick="openDoc(${r.id})"><td><b>${esc(r.filename)}</b></td>${keys.map(k => `<td>${cell(r.fields[k])}</td>`).join('')}</tr>`).join('')}
+        </tbody></table></div></div>`;
+  } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------- locales y empleados
+let employees = [];
+async function loadLocales() {
+  try {
+    [locales, employees] = await Promise.all([capi('/locales'), capi('/employees')]);
+    $('#localesList').innerHTML = locales.length ? `<div class="grid three">${locales.map(l => `
+      <div class="item"><span class="stat-icon">${icon('store')}</span><div class="item-body"><b>${esc(l.name)}</b><p>${esc([l.address, l.city].filter(Boolean).join(', ') || 'Sin dirección')} · ${l.employees} empleado${l.employees === 1 ? '' : 's'}</p></div>
+        <button class="icon-btn" title="Editar" onclick="editLocal(${l.id})">${icon('pencil')}</button></div>`).join('')}</div>`
+      : `<div class="empty">${icon('store')}<div>Añade tu primer local.</div></div>`;
+    $('#employeesTable').innerHTML = employees.length ? `<table class="table"><thead><tr><th>Nombre</th><th>Puesto</th><th>Local</th><th>Contacto</th><th>Estado</th><th></th></tr></thead><tbody>
+      ${employees.map(e => `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">${esc(initials(e.name))}</div><b>${esc(e.name)}</b></div></td><td>${esc(e.position || '—')}</td><td>${esc(e.local_name || '—')}</td>
+        <td class="muted">${esc([e.email, e.phone].filter(Boolean).join(' · ') || '—')}</td><td>${e.active ? '<span class="badge green">Activo</span>' : '<span class="badge gray">Baja</span>'}</td>
+        <td><button class="icon-btn" title="Editar" onclick="editEmployee(${e.id})">${icon('pencil')}</button></td></tr>`).join('')}
+    </tbody></table>` : `<div class="empty">${icon('users')}<div>Sin empleados todavía.</div></div>`;
+  } catch (e) { toast(e.message, true); }
+}
+
+function editLocal(id) {
+  const l = locales.find(x => x.id === id) || {};
+  openModal(id ? 'Editar local' : 'Nuevo local', [
+    field('name', 'Nombre', { value: l.name, required: true, full: true }),
+    field('address', 'Dirección', { value: l.address }), field('city', 'Localidad', { value: l.city }),
+    id ? `<div class="field full"><button type="button" class="btn danger" onclick="deleteLocal(${id})">${icon('trash')}Eliminar local</button></div>` : '',
+  ].join(''), async data => {
+    await capi(id ? '/locales/' + id : '/locales', { method: id ? 'PATCH' : 'POST', body: data });
+    toast(id ? 'Local actualizado' : 'Local creado'); loadLocales();
+  });
+}
+async function deleteLocal(id) {
+  if (!confirm('¿Eliminar el local? Sus empleados quedarán sin local asignado.')) return;
+  try { await capi('/locales/' + id, { method: 'DELETE' }); closeModal(); toast('Local eliminado'); loadLocales(); } catch (e) { toast(e.message, true); }
+}
+
+function editEmployee(id) {
+  const e = employees.find(x => x.id === id) || {};
+  openModal(id ? 'Editar empleado' : 'Nuevo empleado', [
+    field('name', 'Nombre y apellidos', { value: e.name, required: true, full: true }),
+    field('position', 'Puesto', { value: e.position }),
+    field('local_id', 'Local', { value: e.local_id ?? (locales.length === 1 ? locales[0].id : ''), options: [['', 'Sin asignar'], ...locales.map(l => [l.id, l.name])] }),
+    field('email', 'Email', { value: e.email, type: 'email' }), field('phone', 'Teléfono', { value: e.phone }),
+    id ? field('active', 'Estado', { value: e.active ? '1' : '', options: [['1', 'Activo'], ['', 'De baja']] }) : '',
+    id ? `<div class="field full"><button type="button" class="btn danger" onclick="deleteEmployee(${id})">${icon('trash')}Eliminar empleado</button></div>` : '',
+  ].join(''), async data => {
+    if (id) data.active = data.active === '1';
+    await capi(id ? '/employees/' + id : '/employees', { method: id ? 'PATCH' : 'POST', body: data });
+    toast(id ? 'Empleado actualizado' : 'Empleado añadido'); loadLocales();
+  });
+}
+async function deleteEmployee(id) {
+  if (!confirm('¿Eliminar este empleado?')) return;
+  try { await capi('/employees/' + id, { method: 'DELETE' }); closeModal(); toast('Empleado eliminado'); loadLocales(); } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------- configuración
+async function loadCompany() {
+  const c = await capi('/company').catch(e => toast(e.message, true));
+  if (!c) return;
+  $('#companyForm').innerHTML = `<div class="card-title" style="margin-bottom:14px">Empresa</div><div class="form-grid">
+    ${field('name', 'Nombre', { value: c.name, required: true, full: true })}${field('nif', 'NIF / CIF', { value: c.nif })}${field('phone', 'Teléfono', { value: c.phone })}${field('email', 'Email', { value: c.email, type: 'email', full: true })}
+    </div><div class="actions" style="margin-top:16px"><button class="btn primary" type="submit">${icon('check')}Guardar</button></div>`;
+}
+$('#companyForm').onsubmit = async e => {
+  e.preventDefault();
+  try { await capi('/company', { method: 'PATCH', body: Object.fromEntries(new FormData(e.target)) }); toast('Datos guardados'); init(); } catch (err) { toast(err.message, true); }
+};
+$('#pwdForm').onsubmit = async e => {
+  e.preventDefault();
+  try { await api('/api/me/password', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); toast('Contraseña actualizada'); } catch (err) { toast(err.message, true); }
+};
+
+// ---------------------------------------------------------------- inicio
+async function init() {
+  const me = await api('/api/me');
+  const company = await capi('/company');
+  if (me.role === 'admin') {
+    $('#adminBanner').classList.remove('hidden');
+    $('#adminBanner').innerHTML = `<span>${icon('shield-check')} Estás viendo el panel de <b>${esc(company.name)}</b> como administrador</span><a href="/admin">Volver al panel de administrador</a>`;
+    $('#pwdForm').classList.add('hidden');
+  }
+  $('#meName').textContent = company.name;
+  $('#meRole').textContent = me.role === 'admin' ? 'Vista de administrador' : me.email;
+  $('#meAvatar').textContent = initials(company.name);
+  $('#hello').textContent = `Hola, ${company.name}`;
+  document.title = `${company.name} — Gesty Management`;
+}
+init().then(() => go('resumen')).catch(e => toast(e.message, true));
+</script>
+</body>
+</html>

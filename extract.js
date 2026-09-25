@@ -431,10 +431,25 @@ function findLines(lines) {
     const tokens = lines[i].replace(/€/g, ' ').split(/\s+/).filter(Boolean);
     let k = tokens.length;
     while (k > 0 && /^-?\d+(?:[.,]\d+)*%?$/.test(tokens[k - 1])) k--;
-    const nums = tokens.slice(k).filter(t => !/%$/.test(t)).map(parseAmount).filter(v => v !== null);
-    const desc = tokens.slice(0, k).join(' ');
+    const numTokens = tokens.slice(k).filter(t => !/%$/.test(t));
+    const nums = numTokens.map(parseAmount).filter(v => v !== null);
+    let desc = tokens.slice(0, k).join(' ');
     if (!nums.length || !/[a-z]{2}/i.test(desc)) continue;
-    out.push({ descripcion: desc.slice(0, 80), cantidad: nums.length >= 2 ? nums[0] : null, precio: nums.length >= 3 ? nums[nums.length - 2] : null, importe: nums[nums.length - 1] });
+    let cantidad = null, precio = null;
+    if (nums.length >= 3) { cantidad = nums[0]; precio = nums[nums.length - 2]; }
+    else if (nums.length === 2) {
+      // Dos columnas: "cantidad importe" si la primera es un entero sin decimales, si no "precio importe"
+      if (/^\d+$/.test(numTokens[0])) cantidad = nums[0]; else precio = nums[0];
+    }
+    if (cantidad === null) {
+      // Cantidad escrita junto a la descripción: "1 Tostada…" o "Campaña… 1 unidad"
+      const unit = '(?:uds?\\.?|unid(?:ad(?:es)?)?\\.?|u\\.?|kg|g|l|cajas?|horas?|h)';
+      const lead = desc.match(/^(\d+(?:[.,]\d+)?)\s+(?=\D)/);
+      const tail = desc.match(new RegExp(`\\s(\\d+(?:[.,]\\d+)?)\\s*(${unit})?$`, 'i'));
+      if (lead) { cantidad = parseAmount(lead[1]); desc = desc.slice(lead[0].length); }
+      else if (tail) { cantidad = parseAmount(tail[1]); desc = desc.slice(0, tail.index); }
+    }
+    out.push({ descripcion: desc.slice(0, 80), cantidad, precio, importe: nums[nums.length - 1] });
   }
   return out;
 }
