@@ -6,12 +6,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "eval": "node test/eval.js"
   },
   "engines": {
     "node": ">=22.13"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "express": "^5.2.1",
     "lucide-static": "^1.48.0",
     "multer": "^2.4.0",

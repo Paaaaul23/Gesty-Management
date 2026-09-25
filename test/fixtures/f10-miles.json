@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Maquinaria 3D Pro S.A.",
+    "nif": "A28165033",
+    "numero": "FA-24-0402",
+    "fecha": "18/09/2024",
+    "vencimiento": "18/10/2024",
+    "base": 10100,
+    "iva_tipo": 21,
+    "iva": 2121,
+    "total": 12221,
+    "forma_pago": "Transferencia",
+    "iban": "ES02 0049 1500 0512 1041 0888"
+  },
+  "lines": [
+    {
+      "descripcion": "Impresora 3D industrial X-Max 600",
+      "cantidad": 1,
+      "precio": 8450,
+      "importe": 8450
+    },
+    {
+      "descripcion": "Kit de mantenimiento anual",
+      "cantidad": 1,
+      "precio": 690,
+      "importe": 690
+    },
+    {
+      "descripcion": "Instalación y formación (jornada)",
+      "cantidad": 2,
+      "precio": 480,
+      "importe": 960
+    }
+  ]
+}

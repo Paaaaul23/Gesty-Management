@@ -1,0 +1,48 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Cash Galicia Hostelería S.L.",
+    "nif": "B94123700",
+    "numero": "CG24-004512",
+    "fecha": "21/06/2024",
+    "vencimiento": null,
+    "base": 181.7,
+    "iva_tipo": null,
+    "iva": 22.19,
+    "total": 203.89,
+    "forma_pago": "Tarjeta",
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Aceite de oliva virgen extra 5 L",
+      "cantidad": 2,
+      "precio": 34.9,
+      "importe": 69.8
+    },
+    {
+      "descripcion": "Café en grano natural 1 kg",
+      "cantidad": 4,
+      "precio": 16.4,
+      "importe": 65.6
+    },
+    {
+      "descripcion": "Detergente lavavajillas 10 L",
+      "cantidad": 1,
+      "precio": 21.5,
+      "importe": 21.5
+    },
+    {
+      "descripcion": "Servilletas 2 capas (paquete 100)",
+      "cantidad": 10,
+      "precio": 1.85,
+      "importe": 18.5
+    },
+    {
+      "descripcion": "Pan de molde",
+      "cantidad": 3,
+      "precio": 2.1,
+      "importe": 6.3
+    }
+  ]
+}

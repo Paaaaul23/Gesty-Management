@@ -1,0 +1,42 @@
+{
+  "doc_type": "albaran",
+  "fields": {
+    "proveedor": "Almacenes Eléctricos Sampaio S.A.",
+    "nif": "A36138824",
+    "numero": "AE-55120",
+    "fecha": "17/01/2025",
+    "vencimiento": null,
+    "base": null,
+    "iva_tipo": null,
+    "iva": null,
+    "total": null,
+    "forma_pago": null,
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Cable RV-K 3G2,5 (rollo 100 m)",
+      "cantidad": 2,
+      "precio": null,
+      "importe": null
+    },
+    {
+      "descripcion": "Magnetotérmico 2P 16A",
+      "cantidad": 6,
+      "precio": null,
+      "importe": null
+    },
+    {
+      "descripcion": "Caja estanca 100x100",
+      "cantidad": 12,
+      "precio": null,
+      "importe": null
+    },
+    {
+      "descripcion": "Regleta 12 polos",
+      "cantidad": 4,
+      "precio": null,
+      "importe": null
+    }
+  ]
+}

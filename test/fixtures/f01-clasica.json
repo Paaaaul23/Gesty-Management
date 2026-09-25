@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Distribuciones Norte S.L.",
+    "nif": "B36251486",
+    "numero": "F-2024/0153",
+    "fecha": "12/03/2024",
+    "vencimiento": "11/04/2024",
+    "base": 388.65,
+    "iva_tipo": 21,
+    "iva": 81.62,
+    "total": 470.27,
+    "forma_pago": "Transferencia bancaria",
+    "iban": "ES91 2100 0418 4502 0005 1332"
+  },
+  "lines": [
+    {
+      "descripcion": "Filamento PLA 1,75 mm negro 1 kg",
+      "cantidad": 12,
+      "precio": 18.5,
+      "importe": 222
+    },
+    {
+      "descripcion": "Filamento PETG 1,75 mm transparente 1 kg",
+      "cantidad": 6,
+      "precio": 22.9,
+      "importe": 137.4
+    },
+    {
+      "descripcion": "Boquilla latón 0,4 mm (pack 10)",
+      "cantidad": 3,
+      "precio": 9.75,
+      "importe": 29.25
+    }
+  ]
+}

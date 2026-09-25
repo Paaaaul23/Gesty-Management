@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Ferretería O Castro S.L.",
+    "nif": "B36901429",
+    "numero": "T001-005821",
+    "fecha": "08/04/2024",
+    "vencimiento": null,
+    "base": 34.3,
+    "iva_tipo": 21,
+    "iva": 7.2,
+    "total": 41.5,
+    "forma_pago": "Efectivo",
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Cinta americana gris",
+      "cantidad": 2,
+      "precio": 4.95,
+      "importe": 9.9
+    },
+    {
+      "descripcion": "Brocas HSS juego 13",
+      "cantidad": 1,
+      "precio": 17.9,
+      "importe": 17.9
+    },
+    {
+      "descripcion": "Guantes nitrilo T9",
+      "cantidad": 1,
+      "precio": 6.5,
+      "importe": 6.5
+    }
+  ]
+}

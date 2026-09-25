@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gesty Management</title>
 <link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%234ade80%22/%3E%3Ctext x=%2216%22 y=%2223%22 font-size=%2218%22 font-family=%22Arial%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22%230b2e17%22%3EG%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <div class="app">
@@ -75,13 +76,14 @@
           <div class="card">
             <div class="card-head"><div><div class="card-title">Cómo se procesa</div><div class="muted">Qué ocurre al subir un documento</div></div></div>
             <div class="list">
-              <div class="item"><span class="badge green">1</span><div class="item-body"><b>Leer el texto</b><p>PDF digital: texto directo · Foto o escaneo: OCR en español</p></div></div>
-              <div class="item"><span class="badge green">2</span><div class="item-body"><b>Identificar el documento</b><p>Factura, albarán, pedido o presupuesto</p></div></div>
-              <div class="item"><span class="badge green">3</span><div class="item-body"><b>Extraer campos</b><p>Proveedor, NIF, número, fechas, base, IVA, total, pago</p></div></div>
-              <div class="item"><span class="badge green">4</span><div class="item-body"><b>Validar</b><p>Dígito de control del NIF y cuadre base + IVA = total</p></div></div>
+              <div class="item"><span class="badge green">1</span><div class="item-body"><b>Leer la página</b><p>PDF digital: texto directo · Foto o escaneo: OCR en español, enderezando la imagen</p></div></div>
+              <div class="item"><span class="badge green">2</span><div class="item-body"><b>Entender la maquetación</b><p>Etiquetas y valores a la derecha o debajo, tablas por columnas, bloque del cliente</p></div></div>
+              <div class="item"><span class="badge green">3</span><div class="item-body"><b>Extraer campos</b><p>Proveedor, NIF, número, fechas, base, IVA, recargo, retención, total, pago y líneas</p></div></div>
+              <div class="item"><span class="badge green">4</span><div class="item-body"><b>Validar y corregir</b><p>NIF e IBAN con dígito de control, base + IVA = total, suma de líneas; relee zonas dudosas</p></div></div>
+              <div class="item"><span class="badge teal">IA</span><div class="item-body"><b>Lectura con IA (opcional)</b><p>Si el administrador la activa, Claude lee el original y se contrasta con lo anterior</p></div></div>
               <div class="item"><span class="badge teal">5</span><div class="item-body"><b>Revisión humana</b><p>Corriges lo que falle y se registra la precisión por campo</p></div></div>
             </div>
-            <p class="muted" style="margin:14px 0 0">La primera lectura por OCR descarga el modelo de idioma español (unos 20 MB) y tarda algo más.</p>
+            <p class="muted" style="margin:14px 0 0">Un PDF digital se lee en menos de un segundo; una foto o un escaneo, en unos 2 segundos (más si se usa la IA).</p>
           </div>
         </div>
       </div>
@@ -142,8 +144,9 @@ const fileUrl = id => `/api/c/documents/${id}/file` + (CID ? `?cid=${encodeURICo
 
 const TITLES = { resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', precision: 'Precisión del reconocimiento', locales: 'Locales y empleados', config: 'Configuración' };
 const TYPE_TITLES = { '': 'Documentos', factura: 'Facturas', albaran: 'Albaranes', pedido: 'Pedidos', presupuesto: 'Presupuestos' };
-const FIELD_LABELS = { proveedor: 'Proveedor / emisor', nif: 'NIF / CIF', numero: 'Número', fecha: 'Fecha', vencimiento: 'Vencimiento', base: 'Base imponible', iva_tipo: 'Tipo IVA %', iva: 'Cuota IVA', total: 'Total', forma_pago: 'Forma de pago', iban: 'IBAN' };
-const NUM_FIELDS = ['base', 'iva_tipo', 'iva', 'total'];
+const FIELD_LABELS = { proveedor: 'Proveedor / emisor', nif: 'NIF / CIF', numero: 'Número', fecha: 'Fecha', vencimiento: 'Vencimiento', base: 'Base imponible', iva_tipo: 'Tipo IVA %', iva: 'Cuota IVA', recargo: 'Recargo equiv.', retencion: 'Retención IRPF', total: 'Total', forma_pago: 'Forma de pago', iban: 'IBAN' };
+const NUM_FIELDS = ['base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total'];
+const OPTIONAL_FIELDS = ['recargo', 'retencion'];
 let locales = [], docType = '';
 
 function go(page, opts = {}) {
@@ -259,8 +262,9 @@ function renderDoc(d) {
     const v = base.fields?.[k];
     const orig = ex.fields?.[k];
     const shown = v === null || v === undefined ? '' : NUM_FIELDS.includes(k) ? String(v) : v;
-    return `<div class="field ${orig === null || orig === undefined || orig === '' ? 'missing' : ''}" data-key="${k}">
-      <label>${FIELD_LABELS[k]}<span class="muted" style="text-transform:none;font-weight:600" title="Valor que leyó el sistema">${orig === null || orig === undefined || orig === '' ? 'no detectado' : ''}${(ex.derived || []).includes(k) ? 'calculado' : ''}</span></label>
+    const missing = (orig === null || orig === undefined || orig === '') && !OPTIONAL_FIELDS.includes(k);
+    return `<div class="field ${missing ? 'missing' : ''}" data-key="${k}">
+      <label>${FIELD_LABELS[k]}<span class="muted" style="text-transform:none;font-weight:600" title="Valor que leyó el sistema">${missing ? 'no detectado' : ''}${(ex.derived || []).includes(k) ? 'calculado' : ''}</span></label>
       <input name="${k}" value="${esc(shown)}" ${NUM_FIELDS.includes(k) ? 'inputmode="decimal"' : ''} data-orig="${esc(orig ?? '')}"></div>`;
   };
   const checks = (ex.checks || []).map(c => `<div class="check ${c.warn ? 'warn' : c.ok ? 'ok' : 'bad'}">${icon(c.warn ? 'info' : c.ok ? 'circle-check' : 'circle-x')}<span>${esc(c.msg)}</span></div>`).join('');
@@ -270,9 +274,9 @@ function renderDoc(d) {
 
   $('#revision').innerHTML = `
     <button class="btn sm" onclick="go('documentos')" style="margin-bottom:14px">${icon('arrow-left')}Volver a documentos</button>
-    <div class="eyebrow">${typeLabel(base.doc_type || d.doc_type)} · ${esc(methodLabel(ex.method))}</div>
+    <div class="eyebrow">${typeLabel(base.doc_type || d.doc_type)} · ${esc(methodLabel(ex.method))}${ex.engine === 'ia' ? ' · leído con IA' : ''}</div>
     <h2 style="word-break:break-word">${esc(d.filename)}</h2>
-    <p class="sub">${statusBadge(d.status)} ${scoreBadge(ex.score)} <span class="muted">Lectura automática${d.ocr_confidence !== null ? ` · confianza OCR ${Math.round(d.ocr_confidence)}%` : ''}${ex.ms ? ` · ${(ex.ms / 1000).toFixed(1)} s` : ''}</span></p>
+    <p class="sub">${statusBadge(d.status)} ${scoreBadge(ex.score)} ${ex.engine === 'ia' ? `<span class="badge teal">${icon('sparkles')}IA · ${esc(ex.ai_model || '')}</span>` : ''} <span class="muted">Lectura automática${d.ocr_confidence !== null ? ` · confianza OCR ${Math.round(d.ocr_confidence)}%` : ''}${ex.ms ? ` · ${(ex.ms / 1000).toFixed(1)} s` : ''}</span></p>
     <div class="grid halves">
       <div class="card">
         <div class="tabs"><button class="active" data-tab="prev">Original</button><button data-tab="raw">Texto leído</button><button data-tab="lines">Líneas (${ex.lines?.length || 0})</button></div>

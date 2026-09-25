@@ -1,0 +1,36 @@
+{
+  "doc_type": "albaran",
+  "fields": {
+    "proveedor": "Transportes y Logística Miño S.L.",
+    "nif": "B36229847",
+    "numero": "ALB-24-07731",
+    "fecha": "14/05/2024",
+    "vencimiento": null,
+    "base": null,
+    "iva_tipo": null,
+    "iva": null,
+    "total": null,
+    "forma_pago": null,
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Bobina PLA 1 kg blanco",
+      "cantidad": 20,
+      "precio": null,
+      "importe": null
+    },
+    {
+      "descripcion": "Bobina PLA 1 kg negro",
+      "cantidad": 20,
+      "precio": null,
+      "importe": null
+    },
+    {
+      "descripcion": "Caja cartón doble canal 60x40x40",
+      "cantidad": 15,
+      "precio": null,
+      "importe": null
+    }
+  ]
+}

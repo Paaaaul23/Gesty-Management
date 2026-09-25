@@ -1,0 +1,36 @@
+{
+  "doc_type": "albaran",
+  "fields": {
+    "proveedor": "Papelería Técnica Bouzas S.L.",
+    "nif": "B27994763",
+    "numero": "24/1532",
+    "fecha": "03/06/2024",
+    "vencimiento": null,
+    "base": 169.3,
+    "iva_tipo": 21,
+    "iva": 35.55,
+    "total": 204.85,
+    "forma_pago": null,
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Papel A4 80 g (caja 5 paquetes)",
+      "cantidad": 4,
+      "precio": 21.5,
+      "importe": 86
+    },
+    {
+      "descripcion": "Tóner compatible HP 85A",
+      "cantidad": 2,
+      "precio": 29.9,
+      "importe": 59.8
+    },
+    {
+      "descripcion": "Archivador palanca A4",
+      "cantidad": 10,
+      "precio": 2.35,
+      "importe": 23.5
+    }
+  ]
+}

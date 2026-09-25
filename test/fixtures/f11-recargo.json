@@ -1,0 +1,30 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Mayorista Textil Rías Baixas S.L.",
+    "nif": "B36882132",
+    "numero": "MT-2024-1045",
+    "fecha": "11/10/2024",
+    "vencimiento": null,
+    "base": 463,
+    "iva_tipo": 21,
+    "iva": 97.23,
+    "total": 584.31,
+    "forma_pago": "Pagaré 60 días",
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Camiseta algodón 180 g blanca (caja 50)",
+      "cantidad": 2,
+      "precio": 112.5,
+      "importe": 225
+    },
+    {
+      "descripcion": "Sudadera capucha negra (caja 20)",
+      "cantidad": 1,
+      "precio": 238,
+      "importe": 238
+    }
+  ]
+}

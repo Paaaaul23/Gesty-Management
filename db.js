@@ -72,7 +72,20 @@ CREATE TABLE IF NOT EXISTS documents (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   validated_at TEXT
 );
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
 `);
+
+function getSetting(key, fallback = null) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? row.value : fallback;
+}
+function setSetting(key, value) {
+  if (value === null || value === undefined) db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+  else db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, String(value));
+}
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16);
@@ -88,4 +101,4 @@ function verifyPassword(password, stored) {
   return crypto.timingSafeEqual(expected, actual);
 }
 
-module.exports = { db, DATA_DIR, UPLOAD_DIR, hashPassword, verifyPassword };
+module.exports = { db, DATA_DIR, UPLOAD_DIR, hashPassword, verifyPassword, getSetting, setSetting };

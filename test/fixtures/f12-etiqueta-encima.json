@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Carpintería Metálica Lavadores S.L.",
+    "nif": "B27441062",
+    "numero": "2024-0356",
+    "fecha": "29/11/2024",
+    "vencimiento": "29/12/2024",
+    "base": 458.4,
+    "iva_tipo": 21,
+    "iva": 96.26,
+    "total": 554.66,
+    "forma_pago": "Transferencia",
+    "iban": "ES44 2100 5731 7002 0012 3456"
+  },
+  "lines": [
+    {
+      "descripcion": "Estructura aluminio perfil 40x40 (m)",
+      "cantidad": 18,
+      "precio": 11.6,
+      "importe": 208.8
+    },
+    {
+      "descripcion": "Escuadra de unión 40 (ud)",
+      "cantidad": 24,
+      "precio": 2.4,
+      "importe": 57.6
+    },
+    {
+      "descripcion": "Mano de obra montaje (h)",
+      "cantidad": 6,
+      "precio": 32,
+      "importe": 192
+    }
+  ]
+}

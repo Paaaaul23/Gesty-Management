@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Gráficas Atlántico S.L.U.",
+    "nif": "B27860154",
+    "numero": "2024-00087",
+    "fecha": "15/03/2024",
+    "vencimiento": "14/04/2024",
+    "base": 277.4,
+    "iva_tipo": 21,
+    "iva": 58.25,
+    "total": 335.65,
+    "forma_pago": "Transferencia",
+    "iban": "ES21 0081 0216 7300 0118 9230"
+  },
+  "lines": [
+    {
+      "descripcion": "Tarjetas de visita 350 g (1000 uds)",
+      "cantidad": 2,
+      "precio": 38,
+      "importe": 76
+    },
+    {
+      "descripcion": "Flyer A5 couché 135 g (2500 uds)",
+      "cantidad": 1,
+      "precio": 96.4,
+      "importe": 96.4
+    },
+    {
+      "descripcion": "Diseño gráfico (horas)",
+      "cantidad": 3,
+      "precio": 35,
+      "importe": 105
+    }
+  ]
+}

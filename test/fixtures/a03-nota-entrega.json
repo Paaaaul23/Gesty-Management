@@ -1,0 +1,36 @@
+{
+  "doc_type": "albaran",
+  "fields": {
+    "proveedor": "Bebidas del Noroeste S.L.",
+    "nif": "B15836208",
+    "numero": "88213",
+    "fecha": "22/07/2024",
+    "vencimiento": null,
+    "base": null,
+    "iva_tipo": null,
+    "iva": null,
+    "total": null,
+    "forma_pago": null,
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Agua mineral 1,5 L (pack 6)",
+      "cantidad": 10,
+      "precio": null,
+      "importe": null
+    },
+    {
+      "descripcion": "Refresco cola 33 cl (pack 24)",
+      "cantidad": 4,
+      "precio": null,
+      "importe": null
+    },
+    {
+      "descripcion": "Cerveza Estrella Galicia 33 cl (caja 24)",
+      "cantidad": 6,
+      "precio": null,
+      "importe": null
+    }
+  ]
+}

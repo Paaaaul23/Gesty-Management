@@ -1,0 +1,30 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Laura Méndez Otero",
+    "nif": "35467281Q",
+    "numero": "2024/019",
+    "fecha": "31/01/2024",
+    "vencimiento": null,
+    "base": 225,
+    "iva_tipo": 21,
+    "iva": 47.25,
+    "total": 238.5,
+    "forma_pago": "Transferencia bancaria",
+    "iban": "ES79 2100 0813 6101 2345 6789"
+  },
+  "lines": [
+    {
+      "descripcion": "Asesoría fiscal y contable enero 2024",
+      "cantidad": 1,
+      "precio": 180,
+      "importe": 180
+    },
+    {
+      "descripcion": "Presentación modelos 303 y 111",
+      "cantidad": 1,
+      "precio": 45,
+      "importe": 45
+    }
+  ]
+}

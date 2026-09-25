@@ -1,0 +1,36 @@
+{
+  "doc_type": "pedido",
+  "fields": {
+    "proveedor": "Resinas y Polímeros Levante S.L.",
+    "nif": "B97301840",
+    "numero": "PED-2024-0112",
+    "fecha": "20/02/2024",
+    "vencimiento": null,
+    "base": 423.2,
+    "iva_tipo": 21,
+    "iva": 88.87,
+    "total": 512.07,
+    "forma_pago": null,
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Resina estándar gris 1 L",
+      "cantidad": 6,
+      "precio": 39.9,
+      "importe": 239.4
+    },
+    {
+      "descripcion": "Resina flexible 80A 1 L",
+      "cantidad": 2,
+      "precio": 64.5,
+      "importe": 129
+    },
+    {
+      "descripcion": "Alcohol isopropílico 99% 5 L",
+      "cantidad": 2,
+      "precio": 27.4,
+      "importe": 54.8
+    }
+  ]
+}

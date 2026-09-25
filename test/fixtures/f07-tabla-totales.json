@@ -1,0 +1,42 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "ElectroVigo Componentes S.L.",
+    "nif": "B27509389",
+    "numero": "FV/24/1188",
+    "fecha": "02/05/2024",
+    "vencimiento": "01/06/2024",
+    "base": 309.8,
+    "iva_tipo": 21,
+    "iva": 65.06,
+    "total": 374.86,
+    "forma_pago": "Transferencia 30 días",
+    "iban": "ES12 2080 5000 6130 4000 1234"
+  },
+  "lines": [
+    {
+      "descripcion": "Placa Arduino Mega 2560",
+      "cantidad": 3,
+      "precio": 38.9,
+      "importe": 116.7
+    },
+    {
+      "descripcion": "Driver motor paso a paso TMC2209",
+      "cantidad": 10,
+      "precio": 7.45,
+      "importe": 74.5
+    },
+    {
+      "descripcion": "Fuente alimentación 24V 15A",
+      "cantidad": 2,
+      "precio": 42.3,
+      "importe": 84.6
+    },
+    {
+      "descripcion": "Cable silicona 18AWG (10 m)",
+      "cantidad": 5,
+      "precio": 6.8,
+      "importe": 34
+    }
+  ]
+}

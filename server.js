@@ -4,8 +4,9 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const express = require('express');
 const multer = require('multer');
-const { db, UPLOAD_DIR, hashPassword, verifyPassword } = require('./db');
+const { db, UPLOAD_DIR, hashPassword, verifyPassword, getSetting, setSetting } = require('./db');
 const { analyze } = require('./extract');
+const ai = require('./ai');
 
 const PORT = Number(process.env.PORT) || 3000;
 const SESSION_DAYS = 7;
@@ -175,6 +176,40 @@ app.delete('/api/admin/clients/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM clients WHERE id = ?').run(id);
   for (const f of files) fs.rm(path.join(UPLOAD_DIR, f.stored_name), { force: true }, () => {});
   res.json({ ok: true });
+});
+
+// Lectura con IA: clave de la API de Anthropic y modelo
+function aiStatus() {
+  const cfg = ai.config();
+  const key = cfg.apiKey;
+  return {
+    enabled: cfg.enabled,
+    switchOn: getSetting('ai_enabled', '1') === '1',
+    configured: !!key,
+    source: cfg.source,
+    keyHint: key ? key.slice(0, 7) + '…' + key.slice(-4) : null,
+    model: cfg.model,
+    models: ai.MODELS,
+  };
+}
+app.get('/api/admin/ai', requireAdmin, (req, res) => res.json(aiStatus()));
+app.put('/api/admin/ai', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  if ('apiKey' in b) {
+    const k = clean(b.apiKey);
+    if (k && !/^sk-ant-[A-Za-z0-9_\-]{10,}$/.test(k)) return res.status(400).json({ error: 'La clave no tiene el formato de una clave de Anthropic (sk-ant-…)' });
+    setSetting('ai_api_key', k);
+  }
+  if ('model' in b) {
+    if (!ai.MODELS.some(m => m.id === b.model)) return res.status(400).json({ error: 'Modelo no válido' });
+    setSetting('ai_model', b.model);
+  }
+  if ('enabled' in b) setSetting('ai_enabled', b.enabled ? '1' : '0');
+  res.json(aiStatus());
+});
+app.post('/api/admin/ai/test', requireAdmin, async (req, res) => {
+  try { res.json(await ai.testConnection({ apiKey: clean(req.body?.apiKey), model: req.body?.model })); }
+  catch (e) { res.status(400).json({ error: 'No se ha podido conectar: ' + (e.status === 401 ? 'la clave no es válida' : e.status === 404 ? 'modelo no disponible para esta clave' : e.message) }); }
 });
 
 // ---------------------------------------------------------------- panel del cliente
@@ -347,8 +382,8 @@ c.post('/documents/:id/reanalyze', async (req, res) => {
   res.json(docOut(getDoc(req), true));
 });
 
-const FIELD_KEYS = ['proveedor', 'nif', 'numero', 'fecha', 'vencimiento', 'base', 'iva_tipo', 'iva', 'total', 'forma_pago', 'iban'];
-const NUM_KEYS = new Set(['base', 'iva_tipo', 'iva', 'total']);
+const FIELD_KEYS = ['proveedor', 'nif', 'numero', 'fecha', 'vencimiento', 'base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total', 'forma_pago', 'iban'];
+const NUM_KEYS = new Set(['base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total']);
 
 c.put('/documents/:id/validate', (req, res) => {
   const d = getDoc(req);

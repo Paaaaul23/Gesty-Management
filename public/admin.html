@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gesty Management — Administración</title>
 <link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%234ade80%22/%3E%3Ctext x=%2216%22 y=%2223%22 font-size=%2218%22 font-family=%22Arial%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22%230b2e17%22%3EG%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <div class="app">
@@ -14,6 +15,7 @@
     <nav class="nav" id="nav">
       <button class="active" data-page="resumen"><svg class="i"><use href="/icons.svg#circle-gauge"/></svg><span class="nav-label">Resumen</span></button>
       <button data-page="clientes"><svg class="i"><use href="/icons.svg#building"/></svg><span class="nav-label">Clientes</span></button>
+      <button data-page="ia"><svg class="i"><use href="/icons.svg#sparkles"/></svg><span class="nav-label">Lectura con IA</span></button>
       <button data-page="cuenta"><svg class="i"><use href="/icons.svg#shield-check"/></svg><span class="nav-label">Mi cuenta</span></button>
     </nav>
     <div class="bottom">
@@ -51,6 +53,36 @@
         <div id="clientDetail" class="hidden"></div>
       </div>
 
+      <div class="page" id="ia">
+        <div class="eyebrow">Reconocimiento</div><h2>Lectura con IA</h2>
+        <p class="sub">Con la IA activada, cada documento subido lo lee Claude (de Anthropic): entiende cualquier maquetación, fotos torcidas o con poca luz y letra pequeña. El resultado pasa por las mismas comprobaciones (NIF, IBAN, cuadre de importes) y se combina con la lectura local. Si la IA no responde, se usa la lectura local automáticamente.</p>
+        <div class="grid halves">
+          <form class="card" id="aiForm">
+            <div class="card-head"><div class="card-title">Configuración</div><span id="aiBadge"></span></div>
+            <div class="form-grid">
+              <div class="field full"><label>Clave de la API de Anthropic</label><input name="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…"><div class="muted" id="aiKeyHint" style="margin-top:6px"></div></div>
+              <div class="field full"><label>Modelo</label><select name="model" id="aiModel"></select></div>
+              <div class="field full"><label>Estado</label><select name="enabled"><option value="1">Activada: leer los documentos con IA</option><option value="0">Desactivada: solo lectura local</option></select></div>
+            </div>
+            <div class="actions" style="margin-top:16px">
+              <button class="btn primary" type="submit"><svg class="i"><use href="/icons.svg#check"/></svg>Guardar</button>
+              <button class="btn" type="button" id="aiTest"><svg class="i"><use href="/icons.svg#plug"/></svg>Probar conexión</button>
+              <button class="btn danger" type="button" id="aiRemove"><svg class="i"><use href="/icons.svg#trash"/></svg>Quitar clave</button>
+            </div>
+          </form>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px">Cómo conseguir la clave</div>
+            <div class="list">
+              <div class="item"><span class="badge green">1</span><div class="item-body"><b>Crea una cuenta en console.anthropic.com</b><p>Con el email de la empresa</p></div></div>
+              <div class="item"><span class="badge green">2</span><div class="item-body"><b>Añade saldo en Billing</b><p>Se paga por uso; puedes poner un límite mensual</p></div></div>
+              <div class="item"><span class="badge green">3</span><div class="item-body"><b>API Keys → Create Key</b><p>Copia la clave (empieza por sk-ant-) y pégala aquí</p></div></div>
+            </div>
+            <p class="muted" style="margin:14px 0 0" id="aiCost"></p>
+            <p class="muted" style="margin:8px 0 0">Los documentos se envían a la API de Anthropic solo para leerlos. La clave se guarda en la base de datos local de Gesty (<code>data/gesty.db</code>).</p>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="cuenta">
         <div class="eyebrow">Seguridad</div><h2>Mi cuenta</h2><p class="sub">Cambia la contraseña del administrador.</p>
         <form class="card" id="pwdForm" style="max-width:520px">
@@ -69,7 +101,7 @@
 <script src="/common.js"></script>
 <script>
 initTheme(); setupSidebar();
-const TITLES = { resumen: 'Resumen', clientes: 'Clientes', cuenta: 'Mi cuenta' };
+const TITLES = { resumen: 'Resumen', clientes: 'Clientes', ia: 'Lectura con IA', cuenta: 'Mi cuenta' };
 const PLANS = [['basico', 'Básico'], ['profesional', 'Profesional'], ['premium', 'Premium']];
 
 function go(page) {
@@ -78,7 +110,7 @@ function go(page) {
   $('#pageTitle').textContent = TITLES[page];
   if (page === 'clientes') { $('#clientList').classList.remove('hidden'); $('#clientDetail').classList.add('hidden'); }
   if (innerWidth < 720) $('#sidebar').classList.remove('open');
-  refresh();
+  if (page === 'ia') loadAi(); else refresh();
 }
 $$('#nav button').forEach(b => b.onclick = () => go(b.dataset.page));
 
@@ -197,6 +229,40 @@ async function deleteClient(id, name) {
   try { await api('/api/admin/clients/' + id, { method: 'DELETE' }); toast('Cliente eliminado'); go('clientes'); }
   catch (e) { toast(e.message, true); }
 }
+
+// ---------------------------------------------------------------- lectura con IA
+let aiState = null;
+function paintAi(s) {
+  aiState = s;
+  const f = $('#aiForm');
+  $('#aiModel').innerHTML = s.models.map(m => `<option value="${m.id}" ${m.id === s.model ? 'selected' : ''}>${esc(m.label)}</option>`).join('');
+  f.enabled.value = s.switchOn ? '1' : '0';
+  f.apiKey.value = '';
+  $('#aiBadge').innerHTML = s.enabled ? '<span class="badge green">Activa</span>' : s.configured ? '<span class="badge amber">Desactivada</span>' : '<span class="badge gray">Sin configurar</span>';
+  $('#aiKeyHint').textContent = s.configured ? `Clave guardada: ${s.keyHint}${s.source === 'entorno' ? ' (de la variable ANTHROPIC_API_KEY)' : ''}. Escribe otra para sustituirla.` : 'Todavía no hay ninguna clave.';
+  const m = s.models.find(x => x.id === s.model);
+  $('#aiCost').textContent = m ? `Coste orientativo con ${m.id}: unos ${String(m.approxEur).replace('.', ',')} € por documento de una página.` : '';
+  $('#aiRemove').classList.toggle('hidden', s.source !== 'panel');
+}
+async function loadAi() { try { paintAi(await api('/api/admin/ai')); } catch (e) { toast(e.message, true); } }
+$('#aiModel').onchange = () => { const m = aiState?.models.find(x => x.id === $('#aiModel').value); if (m) $('#aiCost').textContent = `Coste orientativo con ${m.id}: unos ${String(m.approxEur).replace('.', ',')} € por documento de una página.`; };
+$('#aiForm').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target, body = { model: f.model.value, enabled: f.enabled.value === '1' };
+  if (f.apiKey.value.trim()) body.apiKey = f.apiKey.value.trim();
+  try { paintAi(await api('/api/admin/ai', { method: 'PUT', body })); toast('Configuración guardada'); } catch (err) { toast(err.message, true); }
+};
+$('#aiTest').onclick = async () => {
+  const f = $('#aiForm'), btn = $('#aiTest');
+  btn.disabled = true;
+  try { const r = await api('/api/admin/ai/test', { method: 'POST', body: { apiKey: f.apiKey.value.trim() || undefined, model: f.model.value } }); toast(`Conexión correcta con ${r.name || r.model}`); }
+  catch (err) { toast(err.message, true); }
+  finally { btn.disabled = false; }
+};
+$('#aiRemove').onclick = async () => {
+  if (!confirm('¿Quitar la clave? Los documentos se leerán solo con la lectura local.')) return;
+  try { paintAi(await api('/api/admin/ai', { method: 'PUT', body: { apiKey: '' } })); toast('Clave eliminada'); } catch (err) { toast(err.message, true); }
+};
 
 $('#pwdForm').onsubmit = async e => {
   e.preventDefault();

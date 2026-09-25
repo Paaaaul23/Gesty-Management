@@ -1,0 +1,42 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Suministros Industriales Galaicos S.A.",
+    "nif": "A15024730",
+    "numero": "A-1023",
+    "fecha": "05/02/2024",
+    "vencimiento": "06/03/2024",
+    "base": 101.1,
+    "iva_tipo": 21,
+    "iva": 21.23,
+    "total": 122.33,
+    "forma_pago": "Recibo domiciliado",
+    "iban": "ES66 0182 5322 2102 0161 7382"
+  },
+  "lines": [
+    {
+      "descripcion": "Tornillo DIN 912 M4x12 inox (caja 200)",
+      "cantidad": 4,
+      "precio": 14.2,
+      "importe": 56.8
+    },
+    {
+      "descripcion": "Tuerca DIN 934 M4 inox (caja 500)",
+      "cantidad": 2,
+      "precio": 11.6,
+      "importe": 23.2
+    },
+    {
+      "descripcion": "Arandela plana M4 (caja 500)",
+      "cantidad": 2,
+      "precio": 6.3,
+      "importe": 12.6
+    },
+    {
+      "descripcion": "Portes",
+      "cantidad": 1,
+      "precio": 8.5,
+      "importe": 8.5
+    }
+  ]
+}

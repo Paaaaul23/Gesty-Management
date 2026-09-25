@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Pescados Ría de Arousa S.L.",
+    "nif": "B36591279",
+    "numero": "PRA-000981",
+    "fecha": "04/03/2025",
+    "vencimiento": "03/04/2025",
+    "base": 188.75,
+    "iva_tipo": 10,
+    "iva": 18.88,
+    "total": 207.63,
+    "forma_pago": "Domiciliación bancaria",
+    "iban": "ES76 2080 5801 1012 3456 7891"
+  },
+  "lines": [
+    {
+      "descripcion": "Merluza del pincho (kg)",
+      "cantidad": 6.5,
+      "precio": 14.8,
+      "importe": 96.2
+    },
+    {
+      "descripcion": "Mejillón de roca (malla 5 kg)",
+      "cantidad": 3,
+      "precio": 11.25,
+      "importe": 33.75
+    },
+    {
+      "descripcion": "Pulpo cocido (kg)",
+      "cantidad": 2.4,
+      "precio": 24.5,
+      "importe": 58.8
+    }
+  ]
+}

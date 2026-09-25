@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Frutas Hermanos Pereira",
+    "nif": "E36047280",
+    "numero": "000341",
+    "fecha": "10/07/2024",
+    "vencimiento": null,
+    "base": 44.45,
+    "iva_tipo": 4,
+    "iva": 1.78,
+    "total": 46.23,
+    "forma_pago": "Contado",
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Limón Verna (kg)",
+      "cantidad": 8,
+      "precio": 2.2,
+      "importe": 17.6
+    },
+    {
+      "descripcion": "Naranja zumo (kg)",
+      "cantidad": 15,
+      "precio": 1.35,
+      "importe": 20.25
+    },
+    {
+      "descripcion": "Menta fresca (manojo)",
+      "cantidad": 6,
+      "precio": 1.1,
+      "importe": 6.6
+    }
+  ]
+}

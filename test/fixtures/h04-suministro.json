@@ -1,0 +1,36 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Energía Verde del Norte S.L.",
+    "nif": "B88193529",
+    "numero": "EVN25-0203-44871",
+    "fecha": "05/03/2025",
+    "vencimiento": "20/03/2025",
+    "base": 75.42,
+    "iva_tipo": 21,
+    "iva": 15.84,
+    "total": 91.26,
+    "forma_pago": "Domiciliación",
+    "iban": "ES14 1465 0100 9119 0012 3456"
+  },
+  "lines": [
+    {
+      "descripcion": "Término de potencia (4,6 kW x 28 días)",
+      "cantidad": null,
+      "precio": null,
+      "importe": 12.87
+    },
+    {
+      "descripcion": "Término de energía (412 kWh)",
+      "cantidad": null,
+      "precio": null,
+      "importe": 61.8
+    },
+    {
+      "descripcion": "Alquiler de contador",
+      "cantidad": null,
+      "precio": null,
+      "importe": 0.75
+    }
+  ]
+}

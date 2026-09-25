@@ -1,0 +1,30 @@
+{
+  "doc_type": "factura",
+  "fields": {
+    "proveedor": "Diego Fernández Castro",
+    "nif": "76834512E",
+    "numero": "2025-004",
+    "fecha": "28/02/2025",
+    "vencimiento": null,
+    "base": 330,
+    "iva_tipo": 21,
+    "iva": 69.3,
+    "total": 376.2,
+    "forma_pago": "Transferencia",
+    "iban": "ES91 0049 1500 0512 1041 0888"
+  },
+  "lines": [
+    {
+      "descripcion": "Modelado 3D de pieza para cliente final",
+      "cantidad": 8,
+      "precio": 30,
+      "importe": 240
+    },
+    {
+      "descripcion": "Renderizado fotorrealista",
+      "cantidad": 2,
+      "precio": 45,
+      "importe": 90
+    }
+  ]
+}
