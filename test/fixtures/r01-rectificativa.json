@@ -1,0 +1,25 @@
+{
+  "doc_type": "rectificativa",
+  "direction": "recibido",
+  "fields": {
+    "proveedor": "Distribuciones Norte S.L.",
+    "nif": "B36251486",
+    "numero": "R-2024/0007",
+    "fecha": "20/03/2024",
+    "vencimiento": null,
+    "base": 37,
+    "iva_tipo": 21,
+    "iva": 7.77,
+    "total": 44.77,
+    "forma_pago": "Transferencia bancaria",
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Devolución filamento PLA defectuoso (rectifica F-2024/0153)",
+      "cantidad": 2,
+      "precio": 18.5,
+      "importe": 37
+    }
+  ]
+}

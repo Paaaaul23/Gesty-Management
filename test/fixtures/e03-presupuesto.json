@@ -1,0 +1,31 @@
+{
+  "doc_type": "presupuesto",
+  "direction": "emitido",
+  "fields": {
+    "proveedor": "Arquitectura Miño Estudio S.L.",
+    "nif": "B36889012",
+    "numero": "P-2025-017",
+    "fecha": "02/05/2025",
+    "vencimiento": null,
+    "base": 970,
+    "iva_tipo": 21,
+    "iva": 203.7,
+    "total": 1173.7,
+    "forma_pago": null,
+    "iban": null
+  },
+  "lines": [
+    {
+      "descripcion": "Maqueta arquitectónica escala 1:200",
+      "cantidad": 1,
+      "precio": 850,
+      "importe": 850
+    },
+    {
+      "descripcion": "Iluminación LED de maqueta",
+      "cantidad": 1,
+      "precio": 120,
+      "importe": 120
+    }
+  ]
+}

@@ -16,6 +16,8 @@ function sdk() {
 }
 const { getSetting } = require('./db');
 
+const { CATEGORIES } = require('./accounting');
+
 const MODELS = [
   { id: 'claude-opus-5', label: 'Claude Opus 5 — máxima precisión (recomendado)', approxEur: 0.04 },
   { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 — equilibrado', approxEur: 0.015 },
@@ -44,9 +46,11 @@ const nullable = t => ({ anyOf: [{ type: t }, { type: 'null' }] });
 const SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['doc_type', 'proveedor', 'nif', 'numero', 'fecha', 'vencimiento', 'base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total', 'forma_pago', 'iban', 'lineas'],
+  required: ['doc_type', 'direccion', 'categoria', 'proveedor', 'nif', 'numero', 'fecha', 'vencimiento', 'base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total', 'forma_pago', 'iban', 'lineas'],
   properties: {
-    doc_type: { type: 'string', enum: ['factura', 'albaran', 'pedido', 'presupuesto'] },
+    doc_type: { type: 'string', enum: ['factura', 'rectificativa', 'albaran', 'pedido', 'presupuesto'] },
+    direccion: { type: 'string', enum: ['recibido', 'emitido'] },
+    categoria: { type: 'string', enum: [...CATEGORIES.gasto, ...CATEGORIES.ingreso].map(c => c[0]) },
     proveedor: nullable('string'),
     nif: nullable('string'),
     numero: nullable('string'),
@@ -72,15 +76,18 @@ const SCHEMA = {
   },
 };
 
-function systemPrompt(ownName, ownNif) {
-  return `Extraes datos de documentos comerciales españoles (facturas, facturas simplificadas o tickets, albaranes, notas de entrega, pedidos y presupuestos) que ha recibido una empresa, para registrarlos en su gestión.
+function systemPrompt(ownName, ownNif, direction) {
+  const own = ownName ? `"${ownName}"${ownNif ? ` (NIF ${ownNif})` : ''}` : 'la empresa usuaria';
+  return `Extraes datos de documentos comerciales españoles (facturas, facturas rectificativas, facturas simplificadas o tickets, albaranes, notas de entrega, pedidos y presupuestos) para registrarlos en la gestión de la empresa ${own}.
 
-La empresa que recibe el documento es ${ownName ? `"${ownName}"` : 'el cliente o destinatario'}${ownNif ? ` (NIF ${ownNif})` : ''}. El proveedor es siempre quien emite el documento, nunca esa empresa: no confundas el bloque "Cliente", "Facturar a", "Destinatario" o "Entregar a" con el proveedor.
+Cada documento puede ser recibido (lo emite un proveedor y ${own} es el cliente: una compra o un gasto) o emitido (lo emite ${own} para uno de sus clientes: una venta o un ingreso).${direction ? ` Este documento es ${direction}.` : ' Decide cuál es mirando quién aparece como emisor (cabecera, datos fiscales, pie) y quién en el bloque "Cliente", "Facturar a", "Destinatario" o "Entregar a".'}
 
 Cómo rellenar cada dato:
-- doc_type: factura (también ticket o factura simplificada), albaran (también nota de entrega), pedido o presupuesto (también oferta o proforma), según el título del documento.
-- proveedor: razón social del emisor tal como aparece, con su forma jurídica si la tiene (S.L., S.A.…). Si solo figura el nombre comercial, ese.
-- nif: NIF/CIF del emisor, sin espacios, puntos, guiones ni prefijo "ES".
+- doc_type: factura (también ticket o factura simplificada), rectificativa (factura rectificativa o de abono), albaran (también nota de entrega), pedido o presupuesto (también oferta o proforma), según el título del documento.
+- direccion: recibido o emitido, como se explica arriba.
+- proveedor: el tercero, es decir, la otra parte que no es ${own}: el emisor si el documento es recibido, el cliente si es emitido. Razón social tal como aparece, con su forma jurídica si la tiene (S.L., S.A.…).
+- nif: NIF/CIF de ese tercero, sin espacios, puntos, guiones ni prefijo "ES".
+- categoria: la categoría contable que mejor describe el documento (compras, suministros, alquiler, personal, profesionales, software, marketing, transporte, reparaciones, seguros, bancos, tributos u otros_gastos si es recibido; ventas, servicios u otros_ingresos si es emitido).
 - numero: número del documento copiado exactamente como está impreso (letras, guiones, barras y ceros incluidos). No uses números de cliente, de pedido de referencia ni de página.
 - fecha y vencimiento: formato dd/mm/aaaa. vencimiento es la fecha límite de pago o de cargo; null si no hay.
 - Importes: números con punto decimal, sin símbolo de moneda.
@@ -140,7 +147,7 @@ async function callModel(client, model, params) {
   return client.messages.create({ ...params, model });
 }
 
-async function extractWithAi(buffer, { mime, filename, text, ownNif, ownName } = {}) {
+async function extractWithAi(buffer, { mime, filename, text, ownNif, ownName, direction } = {}) {
   const cfg = config();
   if (!cfg.apiKey) throw new Error('IA no configurada');
   const client = getClient(cfg.apiKey);
@@ -153,7 +160,7 @@ async function extractWithAi(buffer, { mime, filename, text, ownNif, ownName } =
   const t0 = Date.now();
   const res = await callModel(client, cfg.model, {
     max_tokens: 16000,
-    system: systemPrompt(ownName, ownNif),
+    system: systemPrompt(ownName, ownNif, ['recibido', 'emitido'].includes(direction) ? direction : null),
     thinking: /haiku/.test(cfg.model) ? undefined : { type: 'adaptive' },
     output_config: { ...(/haiku/.test(cfg.model) ? {} : { effort: 'medium' }), format: { type: 'json_schema', schema: SCHEMA } },
     messages: [{ role: 'user', content }],
@@ -177,7 +184,9 @@ function normalize(o) {
   const iban = v => { const s = str(v); return s ? s.toUpperCase().replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim() : null; };
   const retencion = num(o.retencion);
   return {
-    doc_type: ['factura', 'albaran', 'pedido', 'presupuesto'].includes(o.doc_type) ? o.doc_type : null,
+    doc_type: ['factura', 'rectificativa', 'albaran', 'pedido', 'presupuesto'].includes(o.doc_type) ? o.doc_type : null,
+    direction: ['recibido', 'emitido'].includes(o.direccion) ? o.direccion : null,
+    category: [...CATEGORIES.gasto, ...CATEGORIES.ingreso].some(c => c[0] === o.categoria) ? o.categoria : null,
     fields: {
       proveedor: str(o.proveedor), nif: nif(o.nif), numero: str(o.numero), fecha: date(o.fecha), vencimiento: date(o.vencimiento),
       base: num(o.base), iva_tipo: num(o.iva_tipo), iva: num(o.iva), recargo: num(o.recargo), retencion: retencion === null ? null : Math.abs(retencion),

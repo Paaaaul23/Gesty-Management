@@ -1,0 +1,31 @@
+{
+  "doc_type": "factura",
+  "direction": "emitido",
+  "fields": {
+    "proveedor": "Hostelería Bahía de Vigo S.L.",
+    "nif": "B36024172",
+    "numero": "T3D-2025-0041",
+    "fecha": "14/04/2025",
+    "vencimiento": "14/05/2025",
+    "base": 400,
+    "iva_tipo": 21,
+    "iva": 84,
+    "total": 484,
+    "forma_pago": "Transferencia",
+    "iban": "ES91 2100 0418 4502 0005 1332"
+  },
+  "lines": [
+    {
+      "descripcion": "Impresión 3D de piezas decorativas",
+      "cantidad": 40,
+      "precio": 6.5,
+      "importe": 260
+    },
+    {
+      "descripcion": "Diseño y modelado",
+      "cantidad": 4,
+      "precio": 35,
+      "importe": 140
+    }
+  ]
+}

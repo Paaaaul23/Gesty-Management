@@ -15,10 +15,16 @@
     <nav class="nav" id="nav">
       <button class="active" data-page="resumen"><svg class="i"><use href="/icons.svg#layout-dashboard"/></svg><span class="nav-label">Resumen</span></button>
       <button data-page="captura"><svg class="i"><use href="/icons.svg#scan-line"/></svg><span class="nav-label">Captura inteligente</span></button>
-      <button data-page="documentos" data-type=""><svg class="i"><use href="/icons.svg#folder-open"/></svg><span class="nav-label">Documentos</span></button>
-      <button data-page="documentos" data-type="factura"><svg class="i"><use href="/icons.svg#receipt-text"/></svg><span class="nav-label">Facturas</span></button>
-      <button data-page="documentos" data-type="albaran"><svg class="i"><use href="/icons.svg#truck"/></svg><span class="nav-label">Albaranes</span></button>
-      <button data-page="documentos" data-type="pedido"><svg class="i"><use href="/icons.svg#clipboard-list"/></svg><span class="nav-label">Pedidos</span></button>
+    </nav>
+    <div class="section-label">Documentos</div>
+    <nav class="nav">
+      <button data-page="documentos" data-dir="recibido"><svg class="i"><use href="/icons.svg#inbox"/></svg><span class="nav-label">Recibidos (compras)</span></button>
+      <button data-page="documentos" data-dir="emitido"><svg class="i"><use href="/icons.svg#send"/></svg><span class="nav-label">Emitidos (ventas)</span></button>
+      <button data-page="documentos" data-dir=""><svg class="i"><use href="/icons.svg#folder-open"/></svg><span class="nav-label">Todos los documentos</span></button>
+    </nav>
+    <div class="section-label">Contabilidad</div>
+    <nav class="nav">
+      <button data-page="contabilidad"><svg class="i"><use href="/icons.svg#chart-column"/></svg><span class="nav-label">Gastos y beneficios</span></button>
       <button data-page="precision"><svg class="i"><use href="/icons.svg#target"/></svg><span class="nav-label">Precisión del reconocimiento</span></button>
     </nav>
     <div class="section-label">Negocio</div>
@@ -64,9 +70,10 @@
           <div class="card">
             <div class="dropzone" id="dropzone">
               <svg class="i big"><use href="/icons.svg#file-up"/></svg>
-              <h3>Arrastra aquí uno o varios documentos</h3><p>PDF, JPG, PNG, WEBP, TIFF, XML o TXT · hasta 20 MB</p>
+              <h3>Arrastra aquí uno o varios documentos</h3><p>Facturas, rectificativas, albaranes, pedidos o presupuestos, recibidos o emitidos · PDF, JPG, PNG, WEBP, TIFF, XML o TXT · hasta 20 MB</p>
               <div class="actions" style="justify-content:center;margin-top:14px">
                 <button class="btn primary" id="uploadBtn"><svg class="i"><use href="/icons.svg#folder-up"/></svg>Seleccionar archivos</button>
+                <div class="field" style="min-width:200px;text-align:left"><select id="uploadDir" title="¿Lo has recibido o lo has emitido tú?"><option value="">Detectar recibido / emitido</option><option value="recibido">Recibido (compra, gasto)</option><option value="emitido">Emitido por mí (venta, ingreso)</option></select></div>
                 <div class="field" style="min-width:180px;text-align:left"><select id="uploadLocal" title="Local"></select></div>
               </div>
               <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.gif,.xml,.txt">
@@ -90,9 +97,10 @@
 
       <!-- DOCUMENTOS -->
       <div class="page" id="documentos">
-        <div class="eyebrow">Archivo</div><h2 id="docsTitle">Documentos</h2><p class="sub">Documentos capturados, su estado de revisión y los datos reconocidos.</p>
+        <div class="eyebrow" id="docsEyebrow">Archivo</div><h2 id="docsTitle">Documentos</h2><p class="sub" id="docsSub">Documentos capturados, su estado de revisión y los datos reconocidos.</p>
         <div class="card">
-          <div class="card-head"><div class="tabs" id="docTabs"></div><button class="btn primary" onclick="go('captura')"><svg class="i"><use href="/icons.svg#plus"/></svg>Subir</button></div>
+          <div class="card-head"><div class="tabs" id="dirTabs"></div><button class="btn primary" onclick="uploadFor(docDir)"><svg class="i"><use href="/icons.svg#plus"/></svg>Subir</button></div>
+          <div class="tabs sub" id="docTabs"></div>
           <div class="table-wrap" id="docsTable"></div>
         </div>
       </div>
@@ -105,6 +113,41 @@
         <div class="eyebrow">Control de calidad</div><h2>Precisión del reconocimiento</h2>
         <p class="sub">Compara lo que extrajo el sistema con lo que validaste. Solo cuentan los documentos validados. <b>Correcto</b>: coincide · <b>Corregido</b>: lo leyó mal · <b>No detectado</b>: no lo encontró · <b>Sobrante</b>: extrajo un valor que borraste.</p>
         <div id="accuracy"></div>
+      </div>
+
+      <!-- CONTABILIDAD -->
+      <div class="page" id="contabilidad">
+        <div class="eyebrow">Contabilidad</div><h2>Gastos y beneficios</h2>
+        <p class="sub">Ingresos (facturas emitidas), gastos (facturas recibidas y apuntes manuales como nóminas o alquiler), beneficio, IVA a ingresar y pendientes de cobro y pago. Importes sin IVA; las facturas rectificativas restan.</p>
+        <div class="filters">
+          <div class="field"><label>Año</label><select id="accYear"></select></div>
+          <div class="field"><label>Periodo</label><select id="accPeriod"></select></div>
+          <label class="check-inline"><input type="checkbox" id="accValidated"> Solo documentos validados</label>
+          <div class="actions" style="margin-left:auto">
+            <button class="btn" onclick="editEntry()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo apunte</button>
+            <button class="btn" onclick="exportCsv()"><svg class="i"><use href="/icons.svg#download"/></svg>Exportar libro (CSV)</button>
+          </div>
+        </div>
+        <div id="accNotice"></div>
+        <div class="grid stats" id="accStats"></div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-head"><div><div class="card-title" id="accChartTitle">Evolución mensual</div><div class="muted">Ingresos y gastos sin IVA, y beneficio de cada mes</div></div>
+            <div class="tabs" style="margin:0"><button class="active" data-view="chart">Gráfico</button><button data-view="table">Tabla</button></div></div>
+          <div id="accChart"></div>
+        </div>
+        <div class="grid halves" style="margin-bottom:16px">
+          <div class="card"><div class="card-head"><div><div class="card-title">Gastos por categoría</div><div class="muted" id="accCatSub">En el periodo</div></div></div><div id="accCats"></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">IVA y retenciones por trimestre</div><div class="muted">Orientativo para los modelos 303 y 111</div></div></div><div class="table-wrap" id="accIva"></div></div>
+        </div>
+        <div class="grid halves" style="margin-bottom:16px">
+          <div class="card"><div class="card-head"><div><div class="card-title">Pendiente de cobro</div><div class="muted">Facturas emitidas sin cobrar (todas las fechas)</div></div></div><div id="accCobrar"></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Pendiente de pago</div><div class="muted">Facturas recibidas sin pagar (todas las fechas)</div></div></div><div id="accPagar"></div></div>
+        </div>
+        <div class="grid halves" style="margin-bottom:16px">
+          <div class="card"><div class="card-title" style="margin-bottom:10px">Principales clientes</div><div id="accClientes"></div></div>
+          <div class="card"><div class="card-title" style="margin-bottom:10px">Principales proveedores</div><div id="accProveedores"></div></div>
+        </div>
+        <div class="card"><div class="card-head"><div><div class="card-title">Libro de ingresos y gastos</div><div class="muted">Apuntes del periodo. Pulsa uno para abrirlo o editarlo.</div></div></div><div class="table-wrap" id="accBook"></div></div>
       </div>
 
       <!-- LOCALES Y EMPLEADOS -->
@@ -142,23 +185,35 @@ const CID = new URLSearchParams(location.search).get('cid');
 const capi = (p, o) => api('/api/c' + p + (CID ? (p.includes('?') ? '&' : '?') + 'cid=' + encodeURIComponent(CID) : ''), o);
 const fileUrl = id => `/api/c/documents/${id}/file` + (CID ? `?cid=${encodeURIComponent(CID)}` : '');
 
-const TITLES = { resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', precision: 'Precisión del reconocimiento', locales: 'Locales y empleados', config: 'Configuración' };
-const TYPE_TITLES = { '': 'Documentos', factura: 'Facturas', albaran: 'Albaranes', pedido: 'Pedidos', presupuesto: 'Presupuestos' };
+const TITLES = { resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', contabilidad: 'Gastos y beneficios', precision: 'Precisión del reconocimiento', locales: 'Locales y empleados', config: 'Configuración' };
+const TYPE_TITLES = { '': 'Todos', factura: 'Facturas', rectificativa: 'Rectificativas', albaran: 'Albaranes', pedido: 'Pedidos', presupuesto: 'Presupuestos y ofertas' };
+const DIR_TITLES = { '': 'Todos los documentos', recibido: 'Recibidos', emitido: 'Emitidos' };
+// "Facturas emitidas", "Albaranes recibidos"…
+const TYPE_GENDER = { factura: 'f', rectificativa: 'f', albaran: 'm', pedido: 'm', presupuesto: 'm' };
+const docsTitle = () => {
+  if (!docType) return DIR_TITLES[docDir];
+  if (!docDir) return TYPE_TITLES[docType];
+  const f = TYPE_GENDER[docType] === 'f';
+  return `${TYPE_TITLES[docType]} ${docDir === 'emitido' ? (f ? 'emitidas' : 'emitidos') : (f ? 'recibidas' : 'recibidos')}`;
+};
+const partyLabel = dir => dir === 'emitido' ? 'Cliente' : 'Proveedor';
+let CATALOG = null;
 const FIELD_LABELS = { proveedor: 'Proveedor / emisor', nif: 'NIF / CIF', numero: 'Número', fecha: 'Fecha', vencimiento: 'Vencimiento', base: 'Base imponible', iva_tipo: 'Tipo IVA %', iva: 'Cuota IVA', recargo: 'Recargo equiv.', retencion: 'Retención IRPF', total: 'Total', forma_pago: 'Forma de pago', iban: 'IBAN' };
 const NUM_FIELDS = ['base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total'];
 const OPTIONAL_FIELDS = ['recargo', 'retencion'];
-let locales = [], docType = '';
+let locales = [], docType = '', docDir = '';
 
 function go(page, opts = {}) {
-  if (page === 'documentos') docType = opts.type ?? docType;
-  $$('.nav button[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page && (page !== 'documentos' || (b.dataset.type || '') === docType)));
+  if (page === 'documentos') { docType = opts.type ?? docType; docDir = opts.dir ?? docDir; }
+  $$('.nav button[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page && (page !== 'documentos' || (b.dataset.dir || '') === docDir)));
   $$('.page').forEach(p => p.classList.toggle('active', p.id === page));
-  $('#pageTitle').textContent = page === 'documentos' ? TYPE_TITLES[docType] : TITLES[page];
+  $('#pageTitle').textContent = page === 'documentos' ? docsTitle() : TITLES[page];
   if (innerWidth < 720) $('#sidebar').classList.remove('open');
   scrollTo(0, 0);
-  ({ resumen: loadSummary, documentos: loadDocs, precision: loadAccuracy, locales: loadLocales, config: loadCompany, captura: loadLocalSelect })[page]?.();
+  ({ resumen: loadSummary, documentos: loadDocs, contabilidad: loadAccounting, precision: loadAccuracy, locales: loadLocales, config: loadCompany, captura: loadLocalSelect })[page]?.();
 }
-$$('.nav button[data-page]').forEach(b => b.onclick = () => go(b.dataset.page, { type: b.dataset.type || '' }));
+$$('.nav button[data-page]').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.page === 'documentos' ? { dir: b.dataset.dir || '', type: '' } : {}));
+function uploadFor(dir) { go('captura'); $('#uploadDir').value = dir || ''; }
 
 const statusBadge = s => s === 'validado' ? `<span class="badge green">${icon('circle-check')}Validado</span>` : `<span class="badge amber">${icon('clock')}Por revisar</span>`;
 const typeLabel = t => DOC_TYPES[t] || 'Sin clasificar';
@@ -169,20 +224,36 @@ const pct = v => v === null || v === undefined ? '—' : String(v).replace('.', 
 async function loadSummary() {
   try {
     const s = await capi('/summary');
-    const card = (label, ic, v, foot) => `<div class="card"><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value">${v}</div><div class="stat-foot">${foot}</div></div>`;
+    const f = s.finance;
+    const card = (label, ic, v, foot, onclick, neg) => `<div class="card" ${onclick ? `style="cursor:pointer" onclick="${onclick}"` : ''}><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value ${neg ? 'neg' : ''}">${v}</div><div class="stat-foot">${foot}</div></div>`;
     $('#stats').innerHTML =
-      card('Locales', 'store', s.locales, 'Establecimientos') +
-      card('Empleados', 'users', s.employees, 'Activos') +
-      card('Documentos', 'files', s.documents, `${s.pending} por revisar`) +
-      card('Precisión', 'target', pct(s.accuracy), s.accuracy === null ? 'Valida documentos para medirla' : 'Campos correctos sin corregir');
+      card(`Ingresos ${f.year}`, 'trending-up', money(f.ingresos), `${money(f.porCobrar)} pendiente de cobro`, "go('contabilidad')") +
+      card(`Gastos ${f.year}`, 'trending-down', money(f.gastos), `${money(f.porPagar)} pendiente de pago`, "go('contabilidad')") +
+      card(`Beneficio ${f.year}`, 'wallet', money(f.beneficio), f.margen === null ? 'Sin ingresos todavía' : `Margen ${pct(f.margen)}`, "go('contabilidad')", f.beneficio < 0) +
+      card('Documentos', 'files', s.documents, `${s.pending} por revisar · precisión ${pct(s.accuracy)}`, "go('documentos',{dir:'',type:''})");
     $('#recent').innerHTML = s.recent.length ? `<div class="list">${s.recent.map(d => `
-      <div class="item clickable" style="cursor:pointer" onclick="openDoc(${d.id})"><div class="dot"></div><div class="item-body"><b>${esc(d.filename)}</b><p>${typeLabel(d.doc_type)} · ${fmtDate(d.created_at)}</p></div>${scoreBadge(d.score)}${statusBadge(d.status)}</div>`).join('')}</div>`
+      <div class="item clickable" style="cursor:pointer" onclick="openDoc(${d.id})"><div class="dot"></div><div class="item-body"><b>${esc(d.filename)}</b><p>${typeLabel(d.doc_type)} · ${dirLabel(d.direction)} · ${fmtDate(d.created_at)}</p></div>${scoreBadge(d.score)}${statusBadge(d.status)}</div>`).join('')}</div>`
       : `<div class="empty">${icon('scan-line')}<div>Aún no hay documentos.</div><button class="btn primary" style="margin-top:12px" onclick="go('captura')">${icon('upload')}Subir el primero</button></div>`;
     const total = s.byType.reduce((a, b) => a + b.n, 0);
-    $('#byType').innerHTML = total ? `<div class="list">${s.byType.sort((a, b) => b.n - a.n).map(t => `
+    const dirs = Object.fromEntries(s.byDirection.map(d => [d.d, d.n]));
+    $('#byType').innerHTML = total ? `<div class="list">
+      <div style="display:flex;gap:8px;margin-bottom:4px"><button class="btn sm" onclick="go('documentos',{dir:'recibido',type:''})">${icon('inbox')}${dirs.recibido || 0} recibidos</button><button class="btn sm" onclick="go('documentos',{dir:'emitido',type:''})">${icon('send')}${dirs.emitido || 0} emitidos</button></div>
+      ${s.byType.sort((a, b) => b.n - a.n).map(t => `
       <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><b>${typeLabel(t.t === 'otro' ? null : t.t)}</b><span class="muted">${t.n}</span></div><div class="meter"><span style="width:${t.n / total * 100}%"></span></div></div>`).join('')}</div>`
       : '<div class="empty">Sin datos todavía</div>';
   } catch (e) { toast(e.message, true); }
+}
+const dirLabel = d => d === 'emitido' ? 'Emitido' : 'Recibido';
+const dirBadge = d => d === 'emitido' ? `<span class="badge teal">${icon('arrow-up-right')}Emitido</span>` : `<span class="badge gray">${icon('arrow-down-left')}Recibido</span>`;
+const isInvoice = t => t === 'factura' || t === 'rectificativa';
+function payBadge(d, t) {
+  if (!isInvoice(t)) return '<span class="muted">—</span>';
+  const done = d.direction === 'emitido' ? 'Cobrada' : 'Pagada', todo = d.direction === 'emitido' ? 'Por cobrar' : 'Por pagar';
+  return `<button class="badge ${d.paid ? 'green' : 'amber'} pay-btn" title="Pulsa para cambiar" onclick="event.stopPropagation();togglePaid(${d.id}, ${d.paid ? 0 : 1})">${icon(d.paid ? 'circle-check' : 'clock')}${d.paid ? done : todo}</button>`;
+}
+async function togglePaid(id, paid, after) {
+  try { await capi('/documents/' + id, { method: 'PATCH', body: { paid: !!paid } }); toast(paid ? 'Marcada como pagada/cobrada' : 'Marcada como pendiente'); (after || loadDocs)(); }
+  catch (e) { toast(e.message, true); }
 }
 
 // ---------------------------------------------------------------- captura
@@ -208,12 +279,13 @@ async function uploadFiles(files) {
     $('#queue').prepend(row);
     const fd = new FormData();
     fd.append('local_id', $('#uploadLocal').value);
+    fd.append('direction', $('#uploadDir').value);
     fd.append('file', f);
     try {
       const d = await capi('/documents', { method: 'POST', body: fd });
       last = d;
       const nf = Object.values(d.extracted?.fields || {}).filter(v => v !== null && v !== '').length;
-      row.innerHTML = `${icon('file-check')}<div class="item-body"><b>${esc(f.name)}</b><p>${typeLabel(d.doc_type)} · ${nf} campos detectados · ${(d.extracted?.ms / 1000).toFixed(1)} s</p></div>${scoreBadge(d.extracted?.score)}<button class="btn sm soft" onclick="openDoc(${d.id})">Revisar</button>`;
+      row.innerHTML = `${icon('file-check')}<div class="item-body"><b>${esc(f.name)}</b><p>${typeLabel(d.doc_type)} · ${dirLabel(d.direction)} · ${nf} campos detectados · ${(d.extracted?.ms / 1000).toFixed(1)} s</p></div>${scoreBadge(d.extracted?.score)}<button class="btn sm soft" onclick="openDoc(${d.id})">Revisar</button>`;
     } catch (e) {
       row.innerHTML = `${icon('circle-alert')}<div class="item-body"><b>${esc(f.name)}</b><p style="color:var(--red)">${esc(e.message)}</p></div>`;
     }
@@ -223,17 +295,25 @@ async function uploadFiles(files) {
 
 // ---------------------------------------------------------------- documentos
 async function loadDocs() {
-  $('#docsTitle').textContent = TYPE_TITLES[docType];
+  $('#docsTitle').textContent = docsTitle();
+  $('#pageTitle').textContent = docsTitle();
+  $('#docsEyebrow').textContent = docDir === 'emitido' ? 'Ventas' : docDir === 'recibido' ? 'Compras' : 'Archivo';
+  $('#docsSub').textContent = docDir === 'emitido' ? 'Documentos que has emitido tú para tus clientes: facturas, rectificativas, albaranes, pedidos y presupuestos.'
+    : docDir === 'recibido' ? 'Documentos que te han enviado tus proveedores: facturas, rectificativas, albaranes, pedidos y presupuestos.'
+    : 'Todos los documentos capturados, recibidos y emitidos.';
+  $('#dirTabs').innerHTML = Object.entries(DIR_TITLES).map(([k, v]) => `<button class="${k === docDir ? 'active' : ''}" onclick="go('documentos',{dir:'${k}'})">${k ? icon(k === 'emitido' ? 'send' : 'inbox') : ''}${k ? v : 'Todos'}</button>`).join('');
   $('#docTabs').innerHTML = Object.entries(TYPE_TITLES).map(([k, v]) => `<button class="${k === docType ? 'active' : ''}" onclick="go('documentos',{type:'${k}'})">${v}</button>`).join('');
   $('#docsTable').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
-    const docs = await capi('/documents' + (docType ? '?type=' + docType : ''));
-    if (!docs.length) { $('#docsTable').innerHTML = `<div class="empty">${icon('folder-open')}<div>No hay ${TYPE_TITLES[docType].toLowerCase()} todavía.</div></div>`; return; }
-    $('#docsTable').innerHTML = `<table class="table"><thead><tr><th>Archivo</th><th>Tipo</th><th>Proveedor</th><th>Número</th><th>Fecha doc.</th><th class="num">Total</th><th>Lectura</th><th>Estado</th></tr></thead><tbody>
+    const q = new URLSearchParams(); if (docType) q.set('type', docType); if (docDir) q.set('dir', docDir);
+    const docs = await capi('/documents' + (q.toString() ? '?' + q : ''));
+    if (!docs.length) { $('#docsTable').innerHTML = `<div class="empty">${icon('folder-open')}<div>No hay ${docsTitle().toLowerCase()} todavía.</div><button class="btn primary" style="margin-top:12px" onclick="uploadFor(docDir)">${icon('upload')}Subir documentos</button></div>`; return; }
+    const party = docDir ? partyLabel(docDir) : 'Proveedor / cliente';
+    $('#docsTable').innerHTML = `<table class="table"><thead><tr><th>Archivo</th><th>Tipo</th>${docDir ? '' : '<th>Dirección</th>'}<th>${party}</th><th>Número</th><th>Fecha doc.</th><th class="num">Total</th><th>Pago</th><th>Lectura</th><th>Estado</th></tr></thead><tbody>
       ${docs.map(d => { const f = (d.corrected || d.extracted)?.fields || {}; const t = d.corrected?.doc_type || d.doc_type; return `<tr class="clickable" onclick="openDoc(${d.id})">
         <td><b>${esc(d.filename)}</b><div class="muted">Subido ${fmtDate(d.created_at)}</div></td>
-        <td>${typeLabel(t)}</td><td>${esc(f.proveedor || '—')}</td><td>${esc(f.numero || '—')}</td><td>${esc(f.fecha || '—')}</td>
-        <td class="num">${money(f.total)}</td><td>${scoreBadge(d.extracted?.score)}</td><td>${statusBadge(d.status)}</td></tr>`; }).join('')}
+        <td>${typeLabel(t)}</td>${docDir ? '' : `<td>${dirBadge(d.direction)}</td>`}<td>${esc(f.proveedor || '—')}</td><td>${esc(f.numero || '—')}</td><td>${esc(f.fecha || '—')}</td>
+        <td class="num">${money(t === 'rectificativa' && f.total ? -Math.abs(f.total) : f.total)}</td><td>${payBadge(d, t)}</td><td>${scoreBadge(d.extracted?.score)}</td><td>${statusBadge(d.status)}</td></tr>`; }).join('')}
     </tbody></table>`;
   } catch (e) { toast(e.message, true); }
 }
@@ -245,15 +325,18 @@ async function openDoc(id) {
   $('#pageTitle').textContent = 'Revisión de documento';
   $('#revision').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
-    const [d] = await Promise.all([capi('/documents/' + id), locales.length ? null : loadLocalSelect()]);
+    const [d] = await Promise.all([capi('/documents/' + id), locales.length ? null : loadLocalSelect(), CATALOG ? null : capi('/categories').then(c => { CATALOG = c; })]);
     currentDoc = d;
     renderDoc(d);
   } catch (e) { toast(e.message, true); }
 }
 
+const catOptions = (dir, sel) => (CATALOG?.[dir === 'emitido' ? 'ingreso' : 'gasto'] || []).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(v)}</option>`).join('');
 function renderDoc(d) {
   const ex = d.extracted || { fields: {}, checks: [] };
   const base = d.corrected || ex;
+  const dir = d.direction || ex.direction || 'recibido';
+  const t0 = base.doc_type || d.doc_type;
   const isPdf = /\.pdf$/i.test(d.filename), isImg = /\.(jpe?g|png|webp|gif|bmp)$/i.test(d.filename);
   const preview = isPdf ? `<iframe class="preview" src="${fileUrl(d.id)}" title="Documento"></iframe>`
     : isImg ? `<img class="preview" src="${fileUrl(d.id)}" alt="Documento">`
@@ -264,7 +347,7 @@ function renderDoc(d) {
     const shown = v === null || v === undefined ? '' : NUM_FIELDS.includes(k) ? String(v) : v;
     const missing = (orig === null || orig === undefined || orig === '') && !OPTIONAL_FIELDS.includes(k);
     return `<div class="field ${missing ? 'missing' : ''}" data-key="${k}">
-      <label>${FIELD_LABELS[k]}<span class="muted" style="text-transform:none;font-weight:600" title="Valor que leyó el sistema">${missing ? 'no detectado' : ''}${(ex.derived || []).includes(k) ? 'calculado' : ''}</span></label>
+      <label>${k === 'proveedor' ? (dir === 'emitido' ? 'Cliente' : 'Proveedor / emisor') : k === 'nif' ? `NIF / CIF del ${dir === 'emitido' ? 'cliente' : 'proveedor'}` : FIELD_LABELS[k]}<span class="muted" style="text-transform:none;font-weight:600" title="Valor que leyó el sistema">${missing ? 'no detectado' : ''}${(ex.derived || []).includes(k) ? 'calculado' : ''}</span></label>
       <input name="${k}" value="${esc(shown)}" ${NUM_FIELDS.includes(k) ? 'inputmode="decimal"' : ''} data-orig="${esc(orig ?? '')}"></div>`;
   };
   const checks = (ex.checks || []).map(c => `<div class="check ${c.warn ? 'warn' : c.ok ? 'ok' : 'bad'}">${icon(c.warn ? 'info' : c.ok ? 'circle-check' : 'circle-x')}<span>${esc(c.msg)}</span></div>`).join('');
@@ -274,7 +357,7 @@ function renderDoc(d) {
 
   $('#revision').innerHTML = `
     <button class="btn sm" onclick="go('documentos')" style="margin-bottom:14px">${icon('arrow-left')}Volver a documentos</button>
-    <div class="eyebrow">${typeLabel(base.doc_type || d.doc_type)} · ${esc(methodLabel(ex.method))}${ex.engine === 'ia' ? ' · leído con IA' : ''}</div>
+    <div class="eyebrow">${typeLabel(t0)} ${dir === 'emitido' ? 'emitido' : 'recibido'} · ${esc(methodLabel(ex.method))}${ex.engine === 'ia' ? ' · leído con IA' : ''}</div>
     <h2 style="word-break:break-word">${esc(d.filename)}</h2>
     <p class="sub">${statusBadge(d.status)} ${scoreBadge(ex.score)} ${ex.engine === 'ia' ? `<span class="badge teal">${icon('sparkles')}IA · ${esc(ex.ai_model || '')}</span>` : ''} <span class="muted">Lectura automática${d.ocr_confidence !== null ? ` · confianza OCR ${Math.round(d.ocr_confidence)}%` : ''}${ex.ms ? ` · ${(ex.ms / 1000).toFixed(1)} s` : ''}</span></p>
     <div class="grid halves">
@@ -287,8 +370,11 @@ function renderDoc(d) {
       <form class="card" id="reviewForm">
         <div class="card-head"><div><div class="card-title">Datos reconocidos</div><div class="muted">Corrige lo que no esté bien y valida. Los campos corregidos se marcan en naranja.</div></div></div>
         <div class="form-grid">
-          <div class="field"><label>Tipo de documento</label><select name="doc_type">${Object.entries(DOC_TYPES).map(([k, v]) => `<option value="${k}" ${k === (base.doc_type || d.doc_type) ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-          <div class="field"><label>Local</label><select name="local_id"><option value="">Sin asignar</option>${locales.map(l => `<option value="${l.id}" ${l.id === d.local_id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>
+          <div class="field"><label>Tipo de documento</label><select name="doc_type">${Object.entries(DOC_TYPES).map(([k, v]) => `<option value="${k}" ${k === t0 ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+          <div class="field"><label>Recibido o emitido</label><select name="direction"><option value="recibido" ${dir === 'recibido' ? 'selected' : ''}>Recibido (compra, gasto)</option><option value="emitido" ${dir === 'emitido' ? 'selected' : ''}>Emitido por mí (venta, ingreso)</option></select></div>
+          <div class="field"><label>Categoría contable</label><select name="category">${catOptions(dir, d.category)}</select></div>
+          <div class="field"><label>Pago</label><select name="paid"><option value="0" ${d.paid ? '' : 'selected'}>${dir === 'emitido' ? 'Pendiente de cobro' : 'Pendiente de pago'}</option><option value="1" ${d.paid ? 'selected' : ''}>${dir === 'emitido' ? 'Cobrada' : 'Pagada'}</option></select></div>
+          <div class="field full"><label>Local</label><select name="local_id"><option value="">Sin asignar</option>${locales.map(l => `<option value="${l.id}" ${l.id === d.local_id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>
           ${Object.keys(FIELD_LABELS).map(fieldInput).join('')}
           <div class="field full"><label>Nota de la prueba (opcional)</label><input name="note" value="${esc(d.corrected?.note || '')}" placeholder="Ej.: foto con poca luz, factura de dos páginas…"></div>
         </div>
@@ -311,13 +397,25 @@ function renderDoc(d) {
     inp.closest('.field').classList.toggle('changed', !same);
   };
   $$('#reviewForm [data-orig]').forEach(inp => { markChanged(inp); inp.oninput = () => markChanged(inp); });
+  // Al cambiar recibido/emitido cambian las categorías y el nombre del tercero
+  $('#reviewForm [name=direction]').onchange = e => {
+    const nd = e.target.value, f = $('#reviewForm');
+    f.category.innerHTML = catOptions(nd, null);
+    f.paid.options[0].text = nd === 'emitido' ? 'Pendiente de cobro' : 'Pendiente de pago';
+    f.paid.options[1].text = nd === 'emitido' ? 'Cobrada' : 'Pagada';
+    $('#reviewForm [data-key=proveedor] label').firstChild.textContent = nd === 'emitido' ? 'Cliente' : 'Proveedor / emisor';
+    $('#reviewForm [data-key=nif] label').firstChild.textContent = `NIF / CIF del ${nd === 'emitido' ? 'cliente' : 'proveedor'}`;
+    toast('Pulsa "Volver a leer" si el ' + (nd === 'emitido' ? 'cliente' : 'proveedor') + ' no es el correcto');
+  };
+  $('#reviewForm [name=doc_type]').onchange = e => { $('#reviewForm [name=paid]').closest('.field').classList.toggle('hidden', !isInvoice(e.target.value)); };
+  $('#reviewForm [name=paid]').closest('.field').classList.toggle('hidden', !isInvoice(t0));
   $('#reviewForm').onsubmit = async e => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.target));
     const fields = {};
     for (const k of Object.keys(FIELD_LABELS)) fields[k] = data[k];
     try {
-      const saved = await capi(`/documents/${d.id}/validate`, { method: 'PUT', body: { doc_type: data.doc_type, local_id: data.local_id, note: data.note, fields } });
+      const saved = await capi(`/documents/${d.id}/validate`, { method: 'PUT', body: { doc_type: data.doc_type, direction: data.direction, category: data.category, paid: data.paid === '1', local_id: data.local_id, note: data.note, fields } });
       currentDoc = saved; renderDoc(saved);
       const changed = $$('#reviewForm .field.changed').length;
       toast(changed ? `Validado con ${changed} corrección${changed > 1 ? 'es' : ''}` : 'Validado: todos los campos eran correctos');
@@ -328,7 +426,8 @@ const methodLabel = m => ({ 'pdf-texto': 'PDF con texto', 'pdf-ocr': 'PDF escane
 
 async function reanalyze(id) {
   toast('Volviendo a leer el documento…');
-  try { const d = await capi(`/documents/${id}/reanalyze`, { method: 'POST' }); renderDoc(d); toast('Lectura actualizada'); }
+  const direction = $('#reviewForm [name=direction]')?.value;
+  try { const d = await capi(`/documents/${id}/reanalyze`, { method: 'POST', body: { direction } }); renderDoc(d); toast('Lectura actualizada'); }
   catch (e) { toast(e.message, true); }
 }
 async function deleteDoc(id) {
@@ -344,8 +443,8 @@ async function loadAccuracy() {
   try {
     const a = await capi('/accuracy');
     if (!a.documents) { el.innerHTML = `<div class="card"><div class="empty">${icon('target')}<div>Todavía no has validado ningún documento.</div><p>Sube documentos reales en <b>Captura inteligente</b>, revisa los datos y pulsa <b>Validar</b>.</p><button class="btn primary" onclick="go('captura')">${icon('upload')}Empezar pruebas</button></div></div>`; return; }
-    const keys = ['doc_type', ...Object.keys(FIELD_LABELS)];
-    const label = k => k === 'doc_type' ? 'Tipo de documento' : FIELD_LABELS[k];
+    const keys = ['doc_type', 'direction', ...Object.keys(FIELD_LABELS)];
+    const label = k => k === 'doc_type' ? 'Tipo de documento' : k === 'direction' ? 'Recibido / emitido' : FIELD_LABELS[k];
     const rows = keys.map(k => { const p = a.per[k]; const n = p.ok + p.wrong + p.missing; return { k, ...p, n, rate: n ? p.ok / n * 100 : null }; });
     const cell = s => ({ ok: `<span class="badge green" title="Correcto">${icon('check')}</span>`, wrong: `<span class="badge red" title="Corregido">${icon('x')}</span>`, missing: `<span class="badge amber" title="No detectado">${icon('minus')}</span>`, extra: `<span class="badge gray" title="Sobrante">+</span>` })[s] || '<span class="muted">·</span>';
     el.innerHTML = `
@@ -436,6 +535,195 @@ $('#pwdForm').onsubmit = async e => {
   e.preventDefault();
   try { await api('/api/me/password', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); toast('Contraseña actualizada'); } catch (err) { toast(err.message, true); }
 };
+
+// ---------------------------------------------------------------- contabilidad
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+let acc = null, accView = 'chart';
+function accQuery() {
+  const q = new URLSearchParams({ year: $('#accYear').value || new Date().getFullYear() });
+  const p = $('#accPeriod').value;
+  if (p.startsWith('q')) q.set('quarter', p.slice(1)); else if (p.startsWith('m')) q.set('month', p.slice(1));
+  if ($('#accValidated').checked) q.set('validated', '1');
+  return q;
+}
+function initAccFilters() {
+  if ($('#accPeriod').options.length) return;
+  $('#accPeriod').innerHTML = `<option value="">Todo el año</option>${[1, 2, 3, 4].map(q => `<option value="q${q}">${q}.º trimestre</option>`).join('')}${MONTHS.map((m, i) => `<option value="m${i + 1}">${m}</option>`).join('')}`;
+  const y = new Date().getFullYear();
+  $('#accYear').innerHTML = `<option>${y}</option>`;
+  ['#accYear', '#accPeriod', '#accValidated'].forEach(sel => $(sel).onchange = loadAccounting);
+  $$('#contabilidad [data-view]').forEach(b => b.onclick = () => { accView = b.dataset.view; $$('#contabilidad [data-view]').forEach(x => x.classList.toggle('active', x === b)); renderMonthly(); });
+  addEventListener('resize', () => { if ($('#contabilidad').classList.contains('active') && acc) renderMonthly(); });
+}
+async function loadAccounting() {
+  initAccFilters();
+  try {
+    acc = await capi('/accounting?' + accQuery());
+    CATALOG = acc.catalog;
+    const years = [...new Set([new Date().getFullYear(), ...acc.years])].sort((a, b) => b - a);
+    const cur = String(acc.period.year);
+    $('#accYear').innerHTML = years.map(y => `<option ${String(y) === cur ? 'selected' : ''}>${y}</option>`).join('');
+    renderAccounting();
+  } catch (e) { toast(e.message, true); }
+}
+function periodName(p) { return p.month ? `${MONTHS[p.month - 1]} ${p.year}` : p.quarter ? `${p.quarter}.º trimestre ${p.year}` : String(p.year); }
+function renderAccounting() {
+  const r = acc, t = r.totals, c = r.counts;
+  const notes = [];
+  if (c.sinValidar) notes.push(`${c.sinValidar} factura${c.sinValidar > 1 ? 's' : ''} del periodo sin validar: sus importes son los leídos automáticamente.`);
+  if (c.incompletos) notes.push(`${c.incompletos} factura${c.incompletos > 1 ? 's' : ''} sin importes: no se han podido sumar. Revísalas.`);
+  if (c.sinFecha) notes.push(`${c.sinFecha} factura${c.sinFecha > 1 ? 's' : ''} sin fecha: se usa la fecha de subida.`);
+  $('#accNotice').innerHTML = notes.length ? `<div class="notice">${icon('info')}<div>${notes.join('<br>')}</div></div>` : '';
+  const card = (label, ic, v, foot, neg) => `<div class="card"><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value ${neg ? 'neg' : ''}">${v}</div><div class="stat-foot">${foot}</div></div>`;
+  $('#accStats').innerHTML =
+    card('Ingresos', 'trending-up', money(t.ingresos), `${periodName(r.period)} · sin IVA`) +
+    card('Gastos', 'trending-down', money(t.gastos), `${periodName(r.period)} · sin IVA`) +
+    card('Beneficio', 'wallet', money(t.beneficio), t.beneficio < 0 ? 'Pérdidas en el periodo' : 'Antes de impuestos', t.beneficio < 0) +
+    card('IVA a ingresar', 'landmark', money(r.iva.resultado), `Repercutido ${money(r.iva.repercutido)} − soportado ${money(r.iva.soportado)}`, false);
+  $('#accChartTitle').textContent = `Evolución mensual ${r.period.year}`;
+  renderMonthly();
+  // Gastos por categoría (una sola serie: un solo color)
+  const cats = r.categories.gasto, maxC = Math.max(...cats.map(x => Math.abs(x.amount)), 1);
+  $('#accCatSub').textContent = `${periodName(r.period)} · total ${money(t.gastos)}`;
+  $('#accCats').innerHTML = cats.length ? cats.map(x => `<div class="hbar"><span>${esc(x.label)}</span><div class="track"><div class="fill" style="width:${Math.max(0, x.amount) / maxC * 100}%"></div></div><span class="val">${money(x.amount)}</span></div>`).join('')
+    + (r.categories.ingreso.length ? `<div class="muted" style="margin:12px 0 4px">Ingresos</div>` + r.categories.ingreso.map(x => `<div class="hbar"><span>${esc(x.label)}</span><div class="track"><div class="fill in" style="width:${Math.max(0, x.amount) / Math.max(...r.categories.ingreso.map(y => y.amount), 1) * 100}%"></div></div><span class="val">${money(x.amount)}</span></div>`).join('') : '')
+    : `<div class="empty">Sin gastos en el periodo</div>`;
+  // IVA por trimestre
+  $('#accIva').innerHTML = `<table class="table"><thead><tr><th>Trim.</th><th class="num">Repercutido</th><th class="num">Soportado</th><th class="num">IVA (303)</th><th class="num">IRPF (111)</th></tr></thead><tbody>
+    ${r.quarters.map(q => `<tr class="${r.period.quarter === q.quarter || (r.period.month && Math.ceil(r.period.month / 3) === q.quarter) ? 'sel' : ''}"><td>${q.quarter}T</td><td class="num">${money(q.repercutido)}</td><td class="num">${money(q.soportado)}</td>
+      <td class="num"><b>${money(q.resultado)}</b><div class="muted">${q.resultado > 0 ? 'a ingresar' : q.resultado < 0 ? 'a compensar' : ''}</div></td><td class="num">${q.retencionesPracticadas ? money(q.retencionesPracticadas) : '—'}</td></tr>`).join('')}
+    </tbody></table>${r.retenciones.soportadas ? `<p class="muted" style="margin:10px 0 0">Te han retenido ${money(r.retenciones.soportadas)} de IRPF en tus facturas emitidas del periodo (a cuenta de tu impuesto).</p>` : ''}`;
+  // Pendientes
+  const pend = (p, kind) => p.items.length ? `<div style="display:flex;gap:16px;margin-bottom:10px;font-size:13px"><span>Total <b>${money(p.total)}</b></span>${p.vencido ? `<span class="badge red">${icon('circle-alert')}${money(p.vencido)} vencido</span>` : ''}</div>
+    <div class="list">${p.items.slice(0, 8).map(e => `<div class="item"><div class="item-body" style="cursor:pointer" onclick="openDoc(${e.id})"><b>${esc(e.tercero || 'Sin nombre')}</b><p>${esc(e.numero || 'Sin número')} · ${e.due ? 'vence ' + e.due.split('-').reverse().join('/') : 'fecha ' + e.date.split('-').reverse().join('/')}</p></div>
+      ${e.overdue ? '<span class="badge red">Vencida</span>' : ''}<b style="font-variant-numeric:tabular-nums">${money(e.total)}</b><button class="btn sm soft" onclick="togglePaid(${e.id}, 1, loadAccounting)">${icon('check')}${kind === 'ingreso' ? 'Cobrada' : 'Pagada'}</button></div>`).join('')}</div>
+    ${p.items.length > 8 ? `<p class="muted" style="margin:8px 0 0">y ${p.items.length - 8} más</p>` : ''}`
+    : `<div class="empty">${icon('circle-check')}<div>Nada pendiente</div></div>`;
+  $('#accCobrar').innerHTML = pend(r.pending.porCobrar, 'ingreso');
+  $('#accPagar').innerHTML = pend(r.pending.porPagar, 'gasto');
+  const top = (list, cls) => { const m = Math.max(...list.map(x => x.amount), 1); return list.length ? list.map(x => `<div class="hbar"><span>${esc(x.name)} <span class="muted">(${x.count})</span></span><div class="track"><div class="fill ${cls}" style="width:${Math.max(0, x.amount) / m * 100}%"></div></div><span class="val">${money(x.amount)}</span></div>`).join('') : '<div class="empty">Sin datos en el periodo</div>'; };
+  $('#accClientes').innerHTML = top(r.top.clientes, 'in');
+  $('#accProveedores').innerHTML = top(r.top.proveedores, '');
+  // Libro
+  const catName = k => (CATALOG ? [...CATALOG.gasto, ...CATALOG.ingreso].find(x => x[0] === k)?.[1] : k) || '—';
+  $('#accBook').innerHTML = r.entries.length ? `<table class="table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Tercero / concepto</th><th>Categoría</th><th class="num">Base</th><th class="num">IVA</th><th class="num">Total</th><th>Estado</th></tr></thead><tbody>
+    ${r.entries.map(e => `<tr class="clickable" onclick="${e.source === 'doc' ? `openDoc(${e.id})` : `editEntry(${e.id})`}">
+      <td>${e.date.split('-').reverse().join('/')}${e.dateMissing ? ' <span class="muted">(subida)</span>' : ''}</td>
+      <td>${e.kind === 'ingreso' ? `<span class="badge teal">${icon('arrow-up-right')}Ingreso</span>` : `<span class="badge gray">${icon('arrow-down-left')}Gasto</span>`}</td>
+      <td><b>${esc(e.tercero || e.concepto)}</b><div class="muted">${e.source === 'doc' ? `${esc(e.concepto)} ${esc(e.numero || '')}${e.validated ? '' : ' · sin validar'}` : 'Apunte manual' + (e.tercero ? ' · ' + esc(e.concepto) : '')}</div></td>
+      <td>${esc(catName(e.category))}</td><td class="num">${e.base === null ? '—' : money(e.base)}</td><td class="num">${money(e.iva)}</td><td class="num">${e.total === null ? '—' : money(e.total)}</td>
+      <td>${e.kind === 'ingreso' ? (e.paid ? '<span class="badge green">Cobrado</span>' : '<span class="badge amber">Por cobrar</span>') : (e.paid ? '<span class="badge green">Pagado</span>' : '<span class="badge amber">Por pagar</span>')}</td></tr>`).join('')}
+    </tbody></table>` : `<div class="empty">${icon('calculator')}<div>No hay apuntes en ${periodName(r.period)}.</div><p>Sube facturas emitidas y recibidas, o añade un apunte manual.</p></div>`;
+}
+
+// Gráfico mensual: barras de ingresos y gastos (una escala en €) y línea de beneficio
+function renderMonthly() {
+  const el = $('#accChart'), r = acc;
+  if (!r) return;
+  const ms = r.months;
+  const inPeriod = m => r.period.month ? m === r.period.month : r.period.quarter ? Math.ceil(m / 3) === r.period.quarter : true;
+  if (accView === 'table') {
+    const tot = k => ms.reduce((a, m) => a + m[k], 0);
+    el.innerHTML = `<div class="table-wrap"><table class="table"><thead><tr><th>Mes</th><th class="num">Ingresos</th><th class="num">Gastos</th><th class="num">Beneficio</th></tr></thead><tbody>
+      ${ms.map(m => `<tr class="${inPeriod(m.month) && (r.period.month || r.period.quarter) ? 'sel' : ''}"><td>${MONTHS[m.month - 1]}</td><td class="num">${money(m.ingresos)}</td><td class="num">${money(m.gastos)}</td><td class="num"><b>${money(m.beneficio)}</b></td></tr>`).join('')}
+      <tr><td><b>Total ${r.period.year}</b></td><td class="num"><b>${money(tot('ingresos'))}</b></td><td class="num"><b>${money(tot('gastos'))}</b></td><td class="num"><b>${money(tot('beneficio'))}</b></td></tr></tbody></table></div>`;
+    return;
+  }
+  const W = Math.max(300, el.clientWidth || 800), H = W < 500 ? 240 : 280, L = W < 500 ? 46 : 58, R = 8, T = 14, B = 30;
+  const pw = W - L - R, ph = H - T - B;
+  const vals = ms.flatMap(m => [m.ingresos, m.gastos, m.beneficio]);
+  let max = Math.max(0, ...vals), min = Math.min(0, ...vals);
+  if (max === min) max = 1000;
+  const raw = (max - min) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(s => s >= raw) || raw;
+  max = Math.ceil(max / step) * step; min = Math.floor(min / step) * step;
+  const y = v => T + (max - v) / (max - min) * ph;
+  const band = pw / 12, bw = Math.min(24, (band - 14) / 2);
+  const bar = (x, v, cls) => {
+    const y0 = y(0), y1 = y(v), h = Math.abs(y1 - y0);
+    if (h < 0.5) return '';
+    const r = Math.min(4, h, bw / 2), top = Math.min(y0, y1);
+    // Extremo redondeado en el valor, recto en la línea base
+    return v >= 0
+      ? `<path fill="var(${cls})" d="M${x},${y0}V${top + r}Q${x},${top} ${x + r},${top}H${x + bw - r}Q${x + bw},${top} ${x + bw},${top + r}V${y0}Z"/>`
+      : `<path fill="var(${cls})" d="M${x},${y0}V${top + h - r}Q${x},${top + h} ${x + r},${top + h}H${x + bw - r}Q${x + bw},${top + h} ${x + bw},${top + h - r}V${y0}Z"/>`;
+  };
+  let grid = '';
+  for (let v = min; v <= max + step / 2; v += step) grid += `<line class="${Math.abs(v) < step / 2 ? 'zero' : 'gridline'}" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${shortMoney(v)}</text>`;
+  let bars = '', hits = '', labels = '';
+  const pts = [];
+  ms.forEach((m, i) => {
+    const cx = L + band * i + band / 2;
+    const op = inPeriod(m.month) ? 1 : 0.35;
+    bars += `<g opacity="${op}">${bar(cx - bw - 1, m.ingresos, '--series-1')}${bar(cx + 1, m.gastos, '--series-2')}</g>`;
+    labels += `<text class="axis" x="${cx}" y="${H - 10}" text-anchor="middle">${band < 34 ? MONTHS[i][0] : MONTHS[i].slice(0, 3)}</text>`;
+    hits += `<rect class="hit" data-i="${i}" x="${L + band * i}" y="${T}" width="${band}" height="${ph}"/>`;
+    pts.push([cx, y(m.beneficio), op]);
+  });
+  const line = `<polyline fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p => p[0] + ',' + p[1]).join(' ')}"/>`
+    + pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--series-3)" stroke="var(--panel)" stroke-width="2" opacity="${p[2]}"/>`).join('');
+  el.innerHTML = `<div class="legend"><span><i style="background:var(--series-1)"></i>Ingresos</span><span><i style="background:var(--series-2)"></i>Gastos</span><span><i class="line" style="background:var(--series-3)"></i>Beneficio</span></div>
+    <div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ingresos, gastos y beneficio por mes de ${r.period.year}">${grid}${bars}${line}${labels}${hits}</svg><div class="tooltip" id="accTip"></div></div>`;
+  const tip = $('#accTip'), svg = $('#accChart svg');
+  $$('#accChart .hit').forEach(h => {
+    const show = () => {
+      const m = ms[h.dataset.i];
+      tip.innerHTML = `<b>${MONTHS[m.month - 1]} ${r.period.year}</b>
+        <div class="row"><span><i style="background:var(--series-1)"></i>Ingresos</span><span>${money(m.ingresos)}</span></div>
+        <div class="row"><span><i style="background:var(--series-2)"></i>Gastos</span><span>${money(m.gastos)}</span></div>
+        <div class="row"><span><i style="background:var(--series-3)"></i>Beneficio</span><b>${money(m.beneficio)}</b></div>`;
+      const scale = svg.getBoundingClientRect().width / W;
+      const x = (Number(h.getAttribute('x')) + band / 2) * scale;
+      tip.style.display = 'block';
+      tip.style.left = Math.min(Math.max(0, x - tip.offsetWidth / 2), svg.getBoundingClientRect().width - tip.offsetWidth) + 'px';
+      tip.style.top = (T * scale + 20) + 'px';
+    };
+    h.onmouseenter = show; h.onclick = show;
+    h.onmouseleave = () => { tip.style.display = 'none'; };
+  });
+}
+
+function exportCsv() {
+  const q = accQuery();
+  if (CID) q.set('cid', CID);
+  location.href = '/api/c/accounting.csv?' + q;
+}
+
+// Apuntes manuales (nóminas, alquiler, cuotas, ingresos sin factura…)
+async function editEntry(id) {
+  if (!CATALOG) CATALOG = await capi('/categories');
+  const list = id ? await capi('/entries') : [];
+  const e = list.find(x => x.id === id) || { kind: 'gasto', fecha: new Date().toISOString().slice(0, 10), paid: 1, iva: 0 };
+  const rate = e.base ? Math.round(e.iva / e.base * 100) : 0;
+  const cats = k => CATALOG[k].map(([v, t]) => [v, t]);
+  openModal(id ? 'Editar apunte' : 'Nuevo apunte manual', [
+    field('kind', 'Tipo', { value: e.kind, options: [['gasto', 'Gasto'], ['ingreso', 'Ingreso']] }),
+    field('fecha', 'Fecha', { value: e.fecha, type: 'date', required: true }),
+    field('concepto', 'Concepto', { value: e.concepto, required: true, full: true, placeholder: 'Ej.: Nómina de marzo, alquiler del local, cuota de autónomos…' }),
+    field('category', 'Categoría', { value: e.category || (e.kind === 'ingreso' ? 'otros_ingresos' : 'otros_gastos'), options: cats(e.kind) }),
+    field('tercero', 'Proveedor / cliente (opcional)', { value: e.tercero }),
+    field('base', 'Importe sin IVA (€)', { value: e.base ?? '', required: true }),
+    field('iva_rate', 'IVA', { value: [0, 4, 10, 21].includes(rate) ? rate : 0, options: [[0, 'Sin IVA'], [4, '4 %'], [10, '10 %'], [21, '21 %']] }),
+    field('retencion', 'Retención IRPF (€, opcional)', { value: e.retencion || '' }),
+    field('paid', 'Estado', { value: e.paid ? '1' : '0', options: [['1', 'Pagado / cobrado'], ['0', 'Pendiente']] }),
+    id ? `<div class="field full"><button type="button" class="btn danger" onclick="deleteEntry(${id})">${icon('trash')}Eliminar apunte</button></div>` : '',
+  ].join(''), async data => {
+    const base = Number(String(data.base).replace(',', '.'));
+    if (!Number.isFinite(base)) throw new Error('El importe no es válido');
+    const body = { kind: data.kind, fecha: data.fecha, concepto: data.concepto, category: data.category, tercero: data.tercero, base,
+      iva: Math.round(base * Number(data.iva_rate) / 100 * 100) / 100, retencion: data.retencion || 0, paid: data.paid === '1' };
+    await capi(id ? '/entries/' + id : '/entries', { method: id ? 'PATCH' : 'POST', body });
+    toast(id ? 'Apunte actualizado' : 'Apunte añadido');
+    if ($('#contabilidad').classList.contains('active')) loadAccounting();
+  });
+  // Las categorías cambian con el tipo
+  const f = $('#modal form');
+  f.kind.onchange = () => { f.category.innerHTML = cats(f.kind.value).map(([v, t]) => `<option value="${v}">${esc(t)}</option>`).join(''); };
+}
+async function deleteEntry(id) {
+  if (!confirm('¿Eliminar este apunte?')) return;
+  try { await capi('/entries/' + id, { method: 'DELETE' }); closeModal(); toast('Apunte eliminado'); loadAccounting(); } catch (e) { toast(e.message, true); }
+}
 
 // ---------------------------------------------------------------- inicio
 async function init() {

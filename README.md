@@ -3,7 +3,8 @@
 Gestión para pequeños comercios. Entorno local.
 
 - **Panel de administrador** (`/admin`): alta, edición, suspensión y baja de clientes; ver sus locales, empleados y documentos; abrir el panel de cualquier cliente.
-- **Panel de cliente** (`/app`): resumen, captura inteligente, documentos (facturas, albaranes, pedidos), precisión del reconocimiento, locales y empleados, configuración.
+- **Panel de cliente** (`/app`): resumen, captura inteligente, documentos **recibidos** (compras) y **emitidos** (ventas) separados por tipo (facturas, rectificativas, albaranes, pedidos, presupuestos y ofertas), contabilidad, precisión del reconocimiento, locales y empleados, configuración.
+- **Contabilidad** (*Gastos y beneficios*): ingresos (facturas emitidas), gastos (facturas recibidas y apuntes manuales como nóminas, alquiler o cuotas), beneficio y margen por año, trimestre o mes; gráfico mensual; gastos por categoría; IVA repercutido, soportado y a ingresar por trimestre (orientativo para el 303) e IRPF retenido (111); facturas pendientes de cobro y de pago con vencimientos; principales clientes y proveedores; libro de ingresos y gastos exportable a CSV (Excel). Las rectificativas restan y los importes son sin IVA (`accounting.js`).
 
 ## Arrancar en Windows
 
@@ -36,7 +37,7 @@ Los datos se guardan en `data/` (base de datos `gesty.db` y archivos subidos en 
 
 1. **Lectura de la página con posiciones**: PDF digital → capa de texto (pdfjs). Foto o PDF escaneado → OCR en español (tesseract.js), enderezando la imagen si está torcida. El modelo de español va incluido en `data/tessdata`.
 2. **Maquetación**: filas y columnas con coordenadas. Se emparejan etiquetas y valores (en la misma línea, a la derecha o debajo, como en las cabeceras de tabla), se leen las líneas de detalle por columnas y se separa el bloque del cliente del del proveedor.
-3. **Campos**: tipo de documento, proveedor, NIF/CIF, número, fecha, vencimiento, base, tipo y cuota de IVA (también con varios tipos), recargo de equivalencia, retención de IRPF, total, forma de pago, IBAN y líneas de detalle (`extract.js`).
+3. **Campos**: tipo de documento (factura, rectificativa, albarán, pedido, presupuesto), si es **recibido o emitido** (según dónde aparece tu empresa: como emisor o en el bloque del cliente), el tercero (proveedor o cliente), NIF/CIF, número, fecha, vencimiento, base, tipo y cuota de IVA (también con varios tipos), recargo de equivalencia, retención de IRPF, total, forma de pago, IBAN y líneas de detalle (`extract.js`).
 4. **Comprobaciones y autocorrección**: dígito de control del NIF/CIF (corrige errores típicos del OCR, p. ej. `8`→`B`) y del IBAN, base + IVA + recargo − retención = total, suma de líneas = base, cantidades y decimales que el OCR lee mal. Si en una foto falta el número, la fecha o el total, se relee esa zona por separado.
 5. **Lectura con IA (opcional)**: desde el panel de administrador → *Lectura con IA* se pega una clave de la API de Anthropic y cada documento lo lee también Claude (`ai.js`). El resultado se combina con la lectura local y pasa las mismas comprobaciones; si la IA falla, se usa la local. También se puede activar con la variable `ANTHROPIC_API_KEY`.
 6. **Revisión**: el usuario corrige y valida. La página *Precisión del reconocimiento* compara lo extraído con lo validado, por campo y por documento.

@@ -31,11 +31,13 @@ function toast(msg, isError = false) {
   toastTimer = setTimeout(() => t.classList.remove('show'), isError ? 5000 : 2800);
 }
 
-const money = n => (n === null || n === undefined || n === '') ? '—' : Number(n).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+const money = n => (n === null || n === undefined || n === '') ? '—' : Number(n).toLocaleString('es-ES', { style: 'currency', currency: 'EUR', useGrouping: 'always' });
 const fmtDate = s => s ? new Date(s.replace(' ', 'T') + (s.length <= 19 ? 'Z' : '')).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const initials = s => String(s || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 
-const DOC_TYPES = { factura: 'Factura', albaran: 'Albarán', pedido: 'Pedido', presupuesto: 'Presupuesto' };
+const DOC_TYPES = { factura: 'Factura', rectificativa: 'Factura rectificativa', albaran: 'Albarán', pedido: 'Pedido', presupuesto: 'Presupuesto / oferta' };
+const DIRECTIONS = { recibido: 'Recibido', emitido: 'Emitido' };
+const shortMoney = n => { const a = Math.abs(n); return (n < 0 ? '−' : '') + (a >= 1000 ? (a / 1000).toLocaleString('es-ES', { maximumFractionDigits: a >= 10000 ? 0 : 1 }) + ' k€' : Math.round(a).toLocaleString('es-ES') + ' €'); };
 
 // Tema claro/oscuro (respeta la preferencia del sistema si no se ha elegido)
 function initTheme() {

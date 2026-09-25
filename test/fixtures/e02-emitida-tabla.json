@@ -1,0 +1,31 @@
+{
+  "doc_type": "factura",
+  "direction": "emitido",
+  "fields": {
+    "proveedor": "Clínica Dental Sonrisa S.L.P.",
+    "nif": "B27745017",
+    "numero": "T3D-2025-0042",
+    "fecha": "22/04/2025",
+    "vencimiento": "22/05/2025",
+    "base": 366,
+    "iva_tipo": 21,
+    "iva": 76.86,
+    "total": 442.86,
+    "forma_pago": "Recibo domiciliado",
+    "iban": "ES66 0182 5322 2102 0161 7382"
+  },
+  "lines": [
+    {
+      "descripcion": "Férulas impresas en resina biocompatible",
+      "cantidad": 12,
+      "precio": 18,
+      "importe": 216
+    },
+    {
+      "descripcion": "Modelos dentales de estudio",
+      "cantidad": 20,
+      "precio": 7.5,
+      "importe": 150
+    }
+  ]
+}

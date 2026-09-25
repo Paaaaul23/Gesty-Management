@@ -32,5 +32,6 @@
       "precio": null,
       "importe": null
     }
-  ]
+  ],
+  "direction": "recibido"
 }

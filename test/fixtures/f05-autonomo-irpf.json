@@ -26,5 +26,6 @@
       "precio": 45,
       "importe": 45
     }
-  ]
+  ],
+  "direction": "recibido"
 }

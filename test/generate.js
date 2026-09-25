@@ -47,7 +47,7 @@ function totalsBlock(s) {
   for (const p of t.ivaParts) rows.push([`IVA ${p.rate}%${t.ivaParts.length > 1 ? ` s/ ${eur(p.base, s)}` : ''}`, eur(p.cuota, s)]);
   if (t.re) rows.push(['Recargo de equivalencia', eur(t.re, s)]);
   if (t.irpf) rows.push([`Retención IRPF ${s.irpf}%`, '-' + eur(t.irpf, s)]);
-  rows.push(['TOTAL FACTURA', eur(t.total, s)]);
+  rows.push([s.type === 'presupuesto' ? 'TOTAL PRESUPUESTO' : 'TOTAL FACTURA', eur(t.total, s)]);
   return `<table class="tot" style="width:330px;margin-left:auto;margin-top:16px">${rows.map((r, i) => `<tr class="${i === rows.length - 1 ? 'big' : ''}"><td>${r[0]}</td><td class="n">${r[1]}</td></tr>`).join('')}</table>`;
 }
 
@@ -60,14 +60,15 @@ function taxTable(s) {
 const supplierBlock = s => `<div><div class="logo">${esc(s.supplier.name)}</div>
   <div>${esc(s.supplier.addr)}</div><div>CIF: ${s.supplier.nif}</div>
   ${s.supplier.phone ? `<div>Tel.: ${s.supplier.phone}</div>` : ''}${s.supplier.email ? `<div>${s.supplier.email}</div>` : ''}</div>`;
-const clientBlock = (s, label = 'Cliente') => `<div class="box"><div class="small muted">${label}</div><b>${esc(s.own.name)}</b><div>${esc(s.own.addr)}</div><div>NIF: ${s.own.nif}</div></div>`;
+const clientBlock = (s, label = 'Cliente') => s.type === 'presupuesto' && label === 'Cliente' ? clientBlockRaw(s, 'Para') : clientBlockRaw(s, label);
+const clientBlockRaw = (s, label) => `<div class="box"><div class="small muted">${label}</div><b>${esc(s.own.name)}</b><div>${esc(s.own.addr)}</div><div>NIF: ${s.own.nif}</div></div>`;
 const payBlock = s => (s.pago || s.iban) ? `<div style="margin-top:22px" class="small">${s.pago ? `<div><b>Forma de pago:</b> ${esc(s.pago)}</div>` : ''}${s.iban ? `<div><b>IBAN:</b> ${s.iban}</div>` : ''}${s.vencimiento && s.layout !== 'cabeceraTabla' && s.layout !== 'etiquetaEncima' ? `<div><b>Vencimiento:</b> ${s.vencimiento}</div>` : ''}</div>` : '';
 const footer = s => `<div class="small muted" style="position:absolute;bottom:40px;left:58px;right:58px">${esc(s.supplier.name)} · Inscrita en el Registro Mercantil · CIF ${s.supplier.nif}</div>`;
 
 const layouts = {
   clasica: s => `${supplierBlock(s)}
-    <div class="row" style="margin-top:26px"><div><h1>FACTURA</h1>
-      <div>Nº Factura: <b>${s.numero}</b></div><div>Fecha: ${s.fecha}</div></div>${clientBlock(s)}</div>
+    <div class="row" style="margin-top:26px"><div><h1>${s.title || 'FACTURA'}</h1>
+      <div>${s.numLabel || 'Nº Factura'}: <b>${s.numero}</b></div><div>Fecha: ${s.fecha}</div></div>${clientBlock(s)}</div>
     <div style="margin-top:24px">${linesTable(s, { withIva: s.t.ivaParts.length > 1 })}</div>${totalsBlock(s)}${payBlock(s)}`,
 
   cabeceraTabla: s => `<div class="row">${supplierBlock(s)}<div class="right"><h1>FACTURA</h1></div></div>

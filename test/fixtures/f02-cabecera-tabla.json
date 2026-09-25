@@ -38,5 +38,6 @@
       "precio": 8.5,
       "importe": 8.5
     }
-  ]
+  ],
+  "direction": "recibido"
 }

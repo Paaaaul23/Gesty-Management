@@ -428,7 +428,7 @@ const LABELS = {
   forma_pago: /^(?:(?:forma|metodo|modo|medio|condiciones|tipo)(?: de)? (?:pago|cobro)|pago|cobro|pagado con|payment method|medio pago)$/,
   iban: /^(?:iban|cuenta(?: bancaria)?|c c c|ccc|num cuenta|numero de cuenta|domiciliacion|cuenta de abono|cuenta cargo)$/,
 };
-const CLIENT_LABEL = /^(?:cliente|datos(?: del)? cliente|facturar a|facturado a|destinatario|entregar a|enviar a|solicitante|comprador|bill to|sold to|ship to|direccion de entrega|datos de facturacion|lugar de entrega|receptor)$/;
+const CLIENT_LABEL = /^(?:cliente|datos(?: del)? cliente|facturar a|facturado a|destinatario|entregar a|entregado a|enviar a|enviado a|titular(?: del contrato)?|datos del titular|senores|sres|a la atencion de|atencion|solicitante|comprador|bill to|sold to|ship to|direccion de entrega|datos de facturacion|lugar de entrega|receptor)$/;
 const SUPPLIER_LABEL = /^(?:proveedor|emisor|vendedor|datos del proveedor|datos del emisor|razon social)$/;
 // IVA con el tipo en la propia etiqueta: "IVA 21%", "IVA (10 %) s/ 50,30 €", "21% IVA"
 const IVA_RATE_LABEL = /^(?:iva|i v a|cuota(?: de)? iva|cuota)\s*(\d{1,2}(?:[.,]\d{1,2})?)\s*%(?:\s*(?:s\/|sobre|de|base)\s*.*)?$|^(\d{1,2}(?:[.,]\d{1,2})?)\s*%\s*(?:de )?iva(?:\s*(?:s\/|sobre|de)\s*.*)?$/;
@@ -519,7 +519,7 @@ function findPairs(rows) {
 // ================================================================ tipo de documento
 
 function detectType(rows) {
-  const scores = { factura: 0, albaran: 0, pedido: 0, presupuesto: 0 };
+  const scores = { factura: 0, rectificativa: 0, albaran: 0, pedido: 0, presupuesto: 0 };
   const maxH = Math.max(...rows.slice(0, 30).flatMap(r => r.segs.map(s => s.h)), 1);
   rows.forEach((r, i) => {
     for (const s of r.segs) {
@@ -530,6 +530,7 @@ function detectType(rows) {
       if (/\balbaran|nota de entrega|hoja de entrega|delivery note|\bentrega num/.test(n)) scores.albaran += w * 1.2;
       if (/(?:^|\s)pedido\b|orden de compra|hoja de pedido|purchase order/.test(n) && !/su pedido|n[ºo°]? ?pedido cliente|ref.*pedido/.test(n)) scores.pedido += w * (/^pedido$|^hoja de pedido$|^orden de compra$/.test(n.trim()) ? 2 : 0.6);
       if (/\bpresupuesto\b|\boferta\b|\bcotizacion\b|\bproforma\b/.test(n)) scores.presupuesto += w;
+      if (/rectificativa|factura de abono|nota de abono|nota de credito|credit note/.test(n)) scores.rectificativa += w * 2.2;
     }
   });
   const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
@@ -540,16 +541,32 @@ function detectType(rows) {
 
 const ADDRESS = /\b(?:c\/|calle|avda?\.?|avenida|r[uú]a|plaza|pza\.?|pol[ií]gono|pol\.|pg\.?|camino|cami[ñn]o|estrada|paseo|p[ºo]\.?|carretera|ctra\.?|traves[ií]a|urb\.?|urbanizaci[oó]n|lugar|barrio|parcela|nave|local|piso|planta|apartado|mercado|puesto|ronda|glorieta|carrer|camí|passeig|av\.)\s/i;
 const POSTAL = /\b(?:0[1-9]|[1-4]\d|5[0-2])\d{3}\b/;
-const LEGAL_FORM = /\b(s\.?\s?l\.?\s?u\.?|s\.?\s?l\.?\s?n\.?\s?e\.?|s\.?\s?l\.?|s\.?\s?a\.?\s?u\.?|s\.?\s?a\.?|s\.?\s?c\.?\s?p\.?|s\.?\s?c\.?|c\.?\s?b\.?|s\.?\s?coop\.?(?:\s?galega|\s?andaluza)?|sociedad (?:limitada|an[oó]nima|cooperativa)|slu|sl|sa)(?=$|[\s,.;)])/i;
+const LEGAL_FORM = /\b(s\.?\s?l\.?\s?p\.?|s\.?\s?l\.?\s?u\.?|s\.?\s?l\.?\s?n\.?\s?e\.?|s\.?\s?l\.?|s\.?\s?a\.?\s?u\.?|s\.?\s?a\.?|s\.?\s?c\.?\s?p\.?|s\.?\s?c\.?|c\.?\s?b\.?|s\.?\s?coop\.?(?:\s?galega|\s?andaluza)?|sociedad (?:limitada|an[oó]nima|cooperativa)|slu|sl|sa)(?=$|[\s,.;)])/i;
 const NOT_NAME = /^(?:factura|albar[aá]n|pedido|presupuesto|nota de entrega|ticket|factura simplificada|original|copia|duplicado|p[aá]gina|tel[eé]fono|tel|telf|fax|m[oó]vil|email|e-mail|web|www|fecha|n[ºo°]|n[uú]mero|cliente|proveedor|datos|total|base|iva|importe|descripci[oó]n|concepto|cantidad|precio|forma de pago|iban|vencimiento|domicilio|direcci[oó]n|c[oó]digo|gracias|firma|observaciones)\b/i;
 const CONTACT = /@|www\.|https?:|\.(?:com|es|net|org|gal|cat|eus)\b|(?:\+34\s?)?\b[6-9]\d{2}[\s.]?\d{2,3}[\s.]?\d{2,3}[\s.]?\d{0,3}\b/i;
+
+// ¿Lo emite la propia empresa (venta) o lo recibe (compra)?
+function detectDirection(rows, labelZones, ownZones, nifs, own) {
+  if (!ownZones.length) return 'recibido';
+  const overlaps = (a, b) => a.r0 <= b.r1 && b.r0 <= a.r1 && a.x0 < b.x1 && b.x0 < a.x1;
+  // La empresa aparece dentro del bloque "Cliente / Facturar a / Entregar a": es una compra
+  if (ownZones.some(o => labelZones.some(l => overlaps(o, l)))) return 'recibido';
+  // Hay un bloque de cliente que no es la empresa: es una venta
+  if (labelZones.length) return 'emitido';
+  // Sin etiquetas: quien encabeza el documento es el emisor
+  const issuer = findSupplier(rows, [], nifs, { nif: null, name: null });
+  const key = canon(own.name || '').replace(/\b(s l u?|s a u?|sl|sa|slu)\b/g, '').trim();
+  if (issuer.proveedor && key.length >= 3 && canon(issuer.proveedor).includes(key)) return 'emitido';
+  if (own.nif && issuer.nif && issuer.nif.value === own.nif) return 'emitido';
+  return 'recibido';
+}
 
 // Zonas que pertenecen al cliente (etiqueta "Cliente", "Facturar a"... o el nombre/NIF propio)
 function clientZones(rows, own) {
   const zones = [];
   const ownName = own.name ? canon(own.name).replace(/\b(s l u?|s a u?|sl|sa|slu)\b/g, '').trim() : null;
-  const addZone = (ri, seg, withLabelRow) => {
-    const z = { r0: ri, r1: ri, x0: seg.x0 - 25, x1: seg.x1 + 25 };
+  const addZone = (ri, seg, withLabelRow, kind) => {
+    const z = { r0: ri, r1: ri, x0: seg.x0 - 25, x1: seg.x1 + 25, kind };
     for (let k = ri + (withLabelRow ? 1 : 0); k < Math.min(rows.length, ri + 7); k++) {
       const prev = rows[k - 1];
       if (k > ri && prev && rows[k].y - prev.y > Math.max(prev.h, rows[k].h) * 2.6) break;
@@ -562,14 +579,14 @@ function clientZones(rows, own) {
   };
   rows.forEach((row, ri) => row.segs.forEach(seg => {
     const l = labelOf(seg.text) || splitInline(seg.text);
-    if (l && l.key === 'cliente') addZone(ri, seg, !l.value);
-    else if (ownName && ownName.length >= 3 && canon(seg.text).includes(ownName)) addZone(Math.max(0, ri), seg, false);
+    if (l && l.key === 'cliente') addZone(ri, seg, !l.value, 'label');
+    else if (ownName && ownName.length >= 3 && canon(seg.text).includes(ownName)) addZone(Math.max(0, ri), seg, false, 'own');
     else if (own.nif && seg.text.toUpperCase().replace(/[\s.\-]/g, '').includes(own.nif)) {
       // NIF propio: la zona empieza unas filas más arriba (nombre y dirección del cliente)
       let top = ri;
       for (let k = ri - 1; k >= Math.max(0, ri - 4); k--) if (rows[k].segs.some(s => Math.abs(s.x0 - seg.x0) < 60)) top = k; else break;
       const s0 = rows[top].segs.find(s => Math.abs(s.x0 - seg.x0) < 60) || seg;
-      addZone(top, s0, false);
+      addZone(top, s0, false, 'own');
       zones[zones.length - 1].r1 = Math.max(zones[zones.length - 1].r1, ri);
     }
   }));
@@ -586,7 +603,7 @@ function cleanName(t) {
   return s;
 }
 
-function findSupplier(rows, zones, nifs, own) {
+function findSupplier(rows, zones, nifs, own, { prefer = [] } = {}) {
   // NIF del proveedor: el primero válido que no sea el propio ni esté en el bloque del cliente
   const ownNif = own.nif;
   const nifInfo = nifs.map(n => {
@@ -598,7 +615,8 @@ function findSupplier(rows, zones, nifs, own) {
     return { ...n, loc, own: n.value === ownNif || (loc && inZones(zones, loc.ri, loc.seg)) };
   });
   const cands = nifInfo.filter(n => !n.own);
-  const nif = cands.find(n => n.valid) || cands[0] || null;
+  const preferred = cands.filter(n => n.loc && inZones(prefer, n.loc.ri, n.loc.seg));
+  const nif = preferred.find(n => n.valid) || cands.find(n => n.valid) || preferred[0] || cands[0] || null;
 
   // Nombre: se puntúan los bloques de la parte superior
   const hs = rows.flatMap(r => r.segs.map(s => s.h));
@@ -616,6 +634,7 @@ function findSupplier(rows, zones, nifs, own) {
     if (amountsIn(t).length) return;
     if (own.name && canon(t).includes(canon(own.name).split(' ')[0]) && canon(own.name).length > 3) return;
     let score = bonus;
+    if (prefer.length && inZones(prefer, ri, seg)) score += 8;
     if (LEGAL_FORM.test(raw)) score += 5;
     score += Math.max(0, Math.min(6, (seg.h / medH - 1) * 4));
     score += (1 - ri / rows.length) * 2.5;
@@ -658,7 +677,7 @@ function findSupplier(rows, zones, nifs, own) {
 // ================================================================ campos
 
 function pickNumber(pairs, rows, docType, nifs) {
-  const typeWord = { factura: /factura|fra|invoice|ticket/, albaran: /albaran|entrega|nota/, pedido: /pedido/, presupuesto: /presupuesto|oferta/ }[docType];
+  const typeWord = { factura: /factura|fra|invoice|ticket/, rectificativa: /factura|fra|rectificativa|abono/, albaran: /albaran|entrega|nota/, pedido: /pedido/, presupuesto: /presupuesto|oferta/ }[docType];
   const isGood = t => t && /\d/.test(t) && t.length >= 2 && t.length <= 25 && !/^n[º°o9s0*]$/i.test(t) &&!/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}$/.test(t) && !nifs.some(n => n.value === t.toUpperCase().replace(/[\s.\-]/g, '')) && !/^\d{1,2}$/.test(t) && !/%$/.test(t);
   const cands = [];
   for (const p of pairs.filter(p => p.key === 'numero')) {
@@ -822,6 +841,8 @@ function fixLineNumbers(l) {
     // Cantidad mal leída (7 por 2, 4 por 1): si importe / precio da un número entero, manda la cuenta
     const qq = i / p / f;
     if (p && Math.abs(qq - Math.round(qq)) < 0.005 && Math.round(qq) > 0 && Math.round(qq) < 100000) { l.cantidad = Math.round(qq); return; }
+    // Si no, se confía en cantidad e importe y se recalcula el precio unitario
+    if (q) l.precio = round2(i / q / f);
   }
   if (q !== null && p === null && i !== null && q) l.precio = round2(i / q / f);
   if (q === null && p !== null && i !== null && p) { const qq = i / p / f; if (Math.abs(qq - Math.round(qq)) < 0.01) l.cantidad = Math.round(qq); }
@@ -936,8 +957,15 @@ function extractFields(text, opts = {}) {
   const doc_type = detectType(rows);
   const pairs = findPairs(rows);
   const nifs = nifsInText(flatText);
-  const zones = clientZones(rows, own);
-  const sup = findSupplier(rows, zones, nifs, own);
+  const allZones = clientZones(rows, own);
+  const labelZones = allZones.filter(z => z.kind === 'label');
+  const ownZones = allZones.filter(z => z.kind === 'own');
+  const direction = ['recibido', 'emitido'].includes(opts.direction) ? opts.direction : detectDirection(rows, labelZones, ownZones, nifs, own);
+  // Recibido: el tercero es el emisor (se excluye todo lo del cliente).
+  // Emitido: el tercero es el cliente (se excluye lo propio y se prefiere el bloque "Cliente").
+  const sup = direction === 'emitido'
+    ? findSupplier(rows, ownZones, nifs, own, { prefer: labelZones })
+    : findSupplier(rows, allZones, nifs, own);
   const lineInfo = findLines(rows);
   const totals = pickTotals(pairs, rows, lineInfo);
   const dates = pickDates(pairs, rows);
@@ -959,10 +987,12 @@ function extractFields(text, opts = {}) {
     iban: iban ? iban.value : null,
   };
   // Albarán/pedido sin precios: no inventar importes
-  if (doc_type !== 'factura' && fields.total === null && !lineInfo.lines.some(l => l.importe !== null)) fields.base = fields.iva = fields.iva_tipo = null;
+  if (!isInvoice(doc_type) && fields.total === null && !lineInfo.lines.some(l => l.importe !== null)) fields.base = fields.iva = fields.iva_tipo = null;
 
-  return finalize({ doc_type, fields, lines: lineInfo.lines, derived: totals.derived, all_nifs: sup.nifInfo.map(({ loc, ...n }) => n), ocrFixedFrom: sup.nif?.ocrFixedFrom });
+  return finalize({ doc_type, direction, fields, lines: lineInfo.lines, derived: totals.derived, all_nifs: sup.nifInfo.map(({ loc, ...n }) => n), ocrFixedFrom: sup.nif?.ocrFixedFrom });
 }
+
+const isInvoice = t => t === 'factura' || t === 'rectificativa';
 
 // Comprobaciones y puntuación (también se usan para el resultado combinado con IA)
 function finalize(r) {
@@ -970,14 +1000,14 @@ function finalize(r) {
   const checks = [];
   if (r.ocrFixedFrom) checks.push({ id: 'nif_ocr', ok: true, warn: true, msg: `NIF corregido automáticamente: el OCR leyó "${r.ocrFixedFrom}"` });
   if (fields.nif) checks.push({ id: 'nif', ok: validNif(fields.nif), msg: validNif(fields.nif) ? 'NIF/CIF con dígito de control válido' : 'NIF/CIF con dígito de control incorrecto (posible error de lectura)' });
-  else checks.push({ id: 'nif', ok: false, msg: 'No se ha encontrado NIF/CIF del proveedor' });
+  else checks.push({ id: 'nif', ok: false, msg: `No se ha encontrado NIF/CIF del ${r.direction === 'emitido' ? 'cliente' : 'proveedor'}` });
   const b = fields.base, i = fields.iva, t = fields.total;
   if (b !== null && i !== null && t !== null) {
     const calc = b + i + (fields.recargo || 0) - (fields.retencion || 0);
     const diff = Math.abs(calc - t);
     const extra = [fields.recargo ? 'recargo' : '', fields.retencion ? 'retención' : ''].filter(Boolean).join(' y ');
     checks.push({ id: 'cuadre', ok: diff <= 0.05, msg: diff <= 0.05 ? `Base + IVA${extra ? ' con ' + extra : ''} = Total` : `Base + IVA${extra ? ' con ' + extra : ''} no cuadra con el total (diferencia ${diff.toFixed(2)} €)` });
-  } else if (doc_type === 'factura') checks.push({ id: 'cuadre', ok: false, msg: 'Faltan importes para comprobar el cuadre' });
+  } else if (isInvoice(doc_type)) checks.push({ id: 'cuadre', ok: false, msg: 'Faltan importes para comprobar el cuadre' });
   if (b !== null && i !== null && fields.iva_tipo !== null && fields.iva_tipo !== undefined && Math.abs(b * fields.iva_tipo / 100 - i) > 0.05 + b * 0.001) {
     checks.push({ id: 'tipo_iva', ok: false, warn: true, msg: `La cuota de IVA no corresponde al ${fields.iva_tipo}% de la base (puede haber varios tipos)` });
   }
@@ -995,7 +1025,7 @@ function finalize(r) {
   checks.push({ id: 'numero', ok: !!fields.numero, msg: fields.numero ? 'Número de documento detectado' : 'No se ha encontrado el número de documento' });
   if (r.extraChecks) checks.push(...r.extraChecks);
 
-  const priceDoc = doc_type === 'factura' || (t !== null && t !== undefined);
+  const priceDoc = isInvoice(doc_type) || (t !== null && t !== undefined);
   const keys = priceDoc ? ['proveedor', 'nif', 'numero', 'fecha', 'base', 'iva', 'total'] : ['proveedor', 'nif', 'numero', 'fecha'];
   const found = keys.filter(k => !isEmpty(fields[k])).length;
   const coverage = found / keys.length;
@@ -1008,7 +1038,7 @@ function finalize(r) {
 // Rellena con la lectura por zonas los campos clave que faltan tras el OCR de la página
 async function recheckZones(t, local) {
   const f = local.fields;
-  const needTotals = local.doc_type === 'factura' && (f.total === null || f.base === null || f.iva === null);
+  const needTotals = isInvoice(local.doc_type) && (f.total === null || f.base === null || f.iva === null);
   const needName = !f.proveedor || !LEGAL_FORM.test(f.proveedor);
   if (f.numero && f.fecha && !needTotals && !needName) return local;
   const zones = [];
@@ -1046,15 +1076,16 @@ async function recheckZones(t, local) {
   return finalize({ ...rest, derived: local.derived || [], extraChecks: [...checks.filter(c => c.id === 'nif_ocr'), { id: 'zonas', ok: true, warn: true, msg: `Segunda lectura de zonas: ${[...new Set(filled)].join(', ')}` }] });
 }
 
-async function analyze(buffer, { mime, filename, ownNif, ownName, ai } = {}) {
+async function analyze(buffer, { mime, filename, ownNif, ownName, ai, direction } = {}) {
   const t = await getLayout(buffer, mime, filename);
-  let local = extractFields(t.text, { rows: t.rows, ownNif, ownName });
+  let local = extractFields(t.text, { rows: t.rows, ownNif, ownName, direction });
   if (t.image) local = await recheckZones(t, local);
   const base = { ...local, raw_text: t.text, ocr_confidence: t.confidence, method: t.method, engine: 'local' };
   const aiMod = require('./ai');
   if (ai === false || !aiMod.isEnabled()) return base;
   try {
-    const r = await aiMod.extractWithAi(buffer, { mime, filename, text: t.text, ownNif, ownName });
+    const r = await aiMod.extractWithAi(buffer, { mime, filename, text: t.text, ownNif, ownName, direction });
+    if (['recibido', 'emitido'].includes(direction)) r.direction = direction;
     return { ...mergeAi(local, r, { ownNif, rawText: t.text, method: t.method }), raw_text: t.text, ocr_confidence: t.confidence, method: t.method, engine: 'ia', ai_model: r.model, ai_ms: r.ms };
   } catch (e) {
     if (!process.env.GESTY_QUIET) console.error('Lectura con IA no disponible:', e.message);
@@ -1090,6 +1121,8 @@ function mergeAi(local, ai, { ownNif, rawText, method } = {}) {
   if (disagreements.length) extraChecks.push({ id: 'ia_local', ok: true, warn: true, msg: `La lectura con IA corrige a la local en: ${disagreements.join(', ')}` });
   return finalize({
     doc_type: ai.doc_type || local.doc_type,
+    direction: ai.direction || local.direction,
+    category: ai.category || null,
     fields,
     lines: ai.lines?.length ? ai.lines : local.lines,
     derived: [],

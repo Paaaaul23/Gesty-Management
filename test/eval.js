@@ -43,7 +43,7 @@ function lineScore(exp, got) {
 
 (async () => {
   const ids = fs.readdirSync(DIR).filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).sort();
-  const per = Object.fromEntries(['doc_type', ...FIELDS, 'lineas'].map(k => [k, { ok: 0, n: 0 }]));
+  const per = Object.fromEntries(['doc_type', 'direccion', ...FIELDS, 'lineas'].map(k => [k, { ok: 0, n: 0 }]));
   const perVariant = {};
   const failures = [];
   let totalMs = 0, runs = 0;
@@ -62,6 +62,7 @@ function lineScore(exp, got) {
         if (good) { per[k].ok++; pv.ok++; } else failures.push(`${id} [${variant}] ${k}: leído ${JSON.stringify(got)} · correcto ${JSON.stringify(want)}`);
       };
       tally('doc_type', r.doc_type === exp.doc_type, r.doc_type, exp.doc_type);
+      tally('direccion', r.direction === exp.direction, r.direction, exp.direction);
       for (const k of FIELDS) {
         const want = exp.fields[k], got = r.fields[k];
         if (empty(want) && empty(got)) continue;

@@ -75,11 +75,37 @@ CREATE TABLE IF NOT EXISTS documents (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   validated_at TEXT
 );
+CREATE TABLE IF NOT EXISTS entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('ingreso','gasto')),
+  fecha TEXT NOT NULL,
+  concepto TEXT NOT NULL,
+  category TEXT,
+  tercero TEXT,
+  base REAL NOT NULL DEFAULT 0,
+  iva REAL NOT NULL DEFAULT 0,
+  retencion REAL NOT NULL DEFAULT 0,
+  total REAL,
+  paid INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
 );
 `);
+
+// Migraciones: columnas añadidas después de la primera versión (bases de datos ya creadas)
+function addColumn(table, column, def) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+  if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
+}
+addColumn('documents', 'direction', "TEXT");           // recibido | emitido
+addColumn('documents', 'category', "TEXT");            // categoría contable
+addColumn('documents', 'paid', "INTEGER NOT NULL DEFAULT 0");
+addColumn('documents', 'paid_at', "TEXT");
+db.exec("UPDATE documents SET direction = COALESCE(json_extract(extracted_json, '$.direction'), 'recibido') WHERE direction IS NULL");
 
 function getSetting(key, fallback = null) {
   const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);

@@ -7,6 +7,7 @@ const multer = require('multer');
 const { db, UPLOAD_DIR, hashPassword, verifyPassword, getSetting, setSetting } = require('./db');
 const { analyze } = require('./extract');
 const ai = require('./ai');
+const acc = require('./accounting');
 
 const PORT = Number(process.env.PORT) || 3000;
 const SESSION_DAYS = 7;
@@ -226,8 +227,18 @@ c.get('/summary', (req, res) => {
     employees: one('SELECT COUNT(*) n FROM employees WHERE client_id = ? AND active = 1').n,
     documents: one('SELECT COUNT(*) n FROM documents WHERE client_id = ?').n,
     pending: one("SELECT COUNT(*) n FROM documents WHERE client_id = ? AND status = 'pendiente'").n,
-    byType: db.prepare("SELECT COALESCE(doc_type,'otro') t, COUNT(*) n FROM documents WHERE client_id = ? GROUP BY doc_type").all(id),
-    recent: db.prepare('SELECT id, filename, doc_type, status, created_at, extracted_json FROM documents WHERE client_id = ? ORDER BY id DESC LIMIT 6').all(id)
+    byType: db.prepare("SELECT COALESCE(json_extract(corrected_json, '$.doc_type'), doc_type, 'otro') t, COUNT(*) n FROM documents WHERE client_id = ? GROUP BY t").all(id),
+    byDirection: db.prepare("SELECT direction d, COUNT(*) n FROM documents WHERE client_id = ? GROUP BY direction").all(id),
+    finance: (() => {
+      // Año en curso; si aún no tiene movimientos, el último año que sí los tenga
+      const all = accountingEntries(id, false);
+      const years = all.map(e => Number(e.date.slice(0, 4))).filter(Boolean);
+      const now = new Date().getFullYear();
+      const year = years.includes(now) || !years.length ? now : Math.max(...years);
+      const r = acc.compute(all, { year });
+      return { year, ...r.totals, porCobrar: r.pending.porCobrar.total, porPagar: r.pending.porPagar.total };
+    })(),
+    recent: db.prepare('SELECT id, filename, doc_type, direction, status, created_at, extracted_json FROM documents WHERE client_id = ? ORDER BY id DESC LIMIT 6').all(id)
       .map(d => ({ ...d, extracted_json: undefined, score: JSON.parse(d.extracted_json || '{}').score ?? null })),
     accuracy: accuracyFor(id).overall,
   });
@@ -307,6 +318,12 @@ const upload = multer({
   fileFilter: (req, file, cb) => cb(null, ALLOWED.test(file.originalname)),
 });
 
+function categoryFor(direction, extracted) {
+  const kind = direction === 'emitido' ? 'ingreso' : 'gasto';
+  if (acc.isCategory(kind, extracted.category)) return extracted.category;
+  return acc.suggestCategory(direction, { proveedor: extracted.fields?.proveedor, lines: extracted.lines, docType: extracted.doc_type });
+}
+
 function docOut(d, full) {
   const out = { ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null') };
   delete out.extracted_json; delete out.corrected_json; delete out.stored_name;
@@ -314,8 +331,8 @@ function docOut(d, full) {
   return out;
 }
 
-async function runAnalysis(client, buffer, mime, filename) {
-  const r = await analyze(buffer, { mime, filename, ownNif: client.nif, ownName: client.name });
+async function runAnalysis(client, buffer, mime, filename, direction) {
+  const r = await analyze(buffer, { mime, filename, ownNif: client.nif, ownName: client.name, direction });
   const { raw_text, ocr_confidence, method, ...extracted } = r;
   return { raw_text, ocr_confidence, method, extracted };
 }
@@ -329,24 +346,28 @@ c.post('/documents', upload.single('file'), async (req, res) => {
   fs.writeFileSync(path.join(UPLOAD_DIR, stored), f.buffer);
   const started = Date.now();
   let a;
-  try { a = await runAnalysis(req.client, f.buffer, f.mimetype, filename); }
+  const wanted = ['recibido', 'emitido'].includes(req.body?.direction) ? req.body.direction : null;
+  try { a = await runAnalysis(req.client, f.buffer, f.mimetype, filename, wanted); }
   catch (e) {
     console.error('Error de reconocimiento:', e);
     a = { raw_text: '', ocr_confidence: null, method: 'error', extracted: { doc_type: null, fields: {}, lines: [], checks: [{ id: 'error', ok: false, msg: 'No se ha podido leer el documento: ' + e.message }], score: 0 } };
   }
   a.extracted.method = a.method;
   a.extracted.ms = Date.now() - started;
-  const r = db.prepare(`INSERT INTO documents (client_id, local_id, filename, stored_name, mime, source, doc_type, raw_text, ocr_confidence, extracted_json)
-    VALUES (?, ?, ?, ?, ?, 'subida', ?, ?, ?, ?)`)
-    .run(req.client.id, checkLocal(req, req.body?.local_id), filename, stored, f.mimetype, a.extracted.doc_type, a.raw_text, a.ocr_confidence, JSON.stringify(a.extracted));
+  const direction = wanted || a.extracted.direction || 'recibido';
+  const r = db.prepare(`INSERT INTO documents (client_id, local_id, filename, stored_name, mime, source, doc_type, raw_text, ocr_confidence, extracted_json, direction, category)
+    VALUES (?, ?, ?, ?, ?, 'subida', ?, ?, ?, ?, ?, ?)`)
+    .run(req.client.id, checkLocal(req, req.body?.local_id), filename, stored, f.mimetype, a.extracted.doc_type, a.raw_text, a.ocr_confidence, JSON.stringify(a.extracted),
+      direction, categoryFor(direction, a.extracted));
   res.status(201).json(docOut(db.prepare('SELECT * FROM documents WHERE id = ?').get(r.lastInsertRowid), true));
 });
 
 c.get('/documents', (req, res) => {
-  const type = clean(req.query.type);
-  const rows = type
-    ? db.prepare('SELECT * FROM documents WHERE client_id = ? AND COALESCE(json_extract(corrected_json, \'$.doc_type\'), doc_type) = ? ORDER BY id DESC').all(req.client.id, type)
-    : db.prepare('SELECT * FROM documents WHERE client_id = ? ORDER BY id DESC').all(req.client.id);
+  const type = clean(req.query.type), dir = clean(req.query.dir);
+  const where = ['client_id = ?'], args = [req.client.id];
+  if (type) { where.push("COALESCE(json_extract(corrected_json, '$.doc_type'), doc_type) = ?"); args.push(type); }
+  if (dir === 'recibido' || dir === 'emitido') { where.push('direction = ?'); args.push(dir); }
+  const rows = db.prepare(`SELECT * FROM documents WHERE ${where.join(' AND ')} ORDER BY id DESC`).all(...args);
   res.json(rows.map(d => docOut(d, false)));
 });
 
@@ -374,11 +395,13 @@ c.post('/documents/:id/reanalyze', async (req, res) => {
   const d = getDoc(req);
   const buf = fs.readFileSync(path.join(UPLOAD_DIR, d.stored_name));
   const started = Date.now();
-  const a = await runAnalysis(req.client, buf, d.mime, d.filename);
+  // Se relee con la dirección que indique la pantalla (o la guardada), para que el tercero sea el correcto
+  const direction = ['recibido', 'emitido'].includes(req.body?.direction) ? req.body.direction : d.direction;
+  const a = await runAnalysis(req.client, buf, d.mime, d.filename, direction);
   a.extracted.method = a.method;
   a.extracted.ms = Date.now() - started;
-  db.prepare('UPDATE documents SET doc_type=?, raw_text=?, ocr_confidence=?, extracted_json=? WHERE id=?')
-    .run(a.extracted.doc_type, a.raw_text, a.ocr_confidence, JSON.stringify(a.extracted), d.id);
+  db.prepare('UPDATE documents SET doc_type=?, raw_text=?, ocr_confidence=?, extracted_json=?, direction=? WHERE id=?')
+    .run(a.extracted.doc_type, a.raw_text, a.ocr_confidence, JSON.stringify(a.extracted), direction || a.extracted.direction || 'recibido', d.id);
   res.json(docOut(getDoc(req), true));
 });
 
@@ -396,10 +419,98 @@ c.put('/documents/:id/validate', (req, res) => {
       fields[k] = Number.isFinite(n) ? n : null;
     } else fields[k] = clean(v);
   }
-  const corrected = { doc_type: clean(b.doc_type) || d.doc_type, fields, note: clean(b.note) };
-  db.prepare("UPDATE documents SET corrected_json=?, status='validado', validated_at=datetime('now'), local_id=? WHERE id=?")
-    .run(JSON.stringify(corrected), 'local_id' in b ? checkLocal(req, b.local_id) : d.local_id, d.id);
+  const direction = ['recibido', 'emitido'].includes(b.direction) ? b.direction : d.direction;
+  const corrected = { doc_type: clean(b.doc_type) || d.doc_type, direction, fields, note: clean(b.note) };
+  const kind = direction === 'emitido' ? 'ingreso' : 'gasto';
+  const category = acc.isCategory(kind, b.category) ? b.category : (acc.isCategory(kind, d.category) ? d.category : categoryFor(direction, { ...JSON.parse(d.extracted_json || '{}'), fields }));
+  const paid = 'paid' in b ? (b.paid ? 1 : 0) : d.paid;
+  db.prepare(`UPDATE documents SET corrected_json=?, status='validado', validated_at=datetime('now'), local_id=?, direction=?, category=?, paid=?,
+    paid_at = CASE WHEN ? = 1 THEN COALESCE(paid_at, datetime('now')) ELSE NULL END WHERE id=?`)
+    .run(JSON.stringify(corrected), 'local_id' in b ? checkLocal(req, b.local_id) : d.local_id, direction, category, paid, paid, d.id);
   res.json(docOut(getDoc(req), true));
+});
+
+// Cambios rápidos desde los listados: cobrado/pagado, categoría, recibido/emitido
+c.patch('/documents/:id', (req, res) => {
+  const d = getDoc(req);
+  const b = req.body || {};
+  const direction = ['recibido', 'emitido'].includes(b.direction) ? b.direction : d.direction;
+  const kind = direction === 'emitido' ? 'ingreso' : 'gasto';
+  let category = d.category;
+  if ('category' in b) {
+    if (!acc.isCategory(kind, b.category)) return res.status(400).json({ error: 'Categoría no válida' });
+    category = b.category;
+  } else if (direction !== d.direction) category = categoryFor(direction, JSON.parse(d.extracted_json || '{}'));
+  const paid = 'paid' in b ? (b.paid ? 1 : 0) : d.paid;
+  db.prepare(`UPDATE documents SET direction=?, category=?, paid=?, paid_at = CASE WHEN ? = 1 THEN COALESCE(paid_at, datetime('now')) ELSE NULL END WHERE id=?`)
+    .run(direction, category, paid, paid, d.id);
+  res.json(docOut(getDoc(req), false));
+});
+
+// ---------------------------------------------------------------- contabilidad
+function accountingEntries(clientId, onlyValidated) {
+  const docs = db.prepare(`SELECT * FROM documents WHERE client_id = ?${onlyValidated ? " AND status = 'validado'" : ''}`).all(clientId)
+    .map(d => acc.docToEntry({ ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null') }))
+    .filter(Boolean);
+  const manual = db.prepare('SELECT * FROM entries WHERE client_id = ?').all(clientId).map(acc.manualToEntry);
+  return [...docs, ...manual];
+}
+function periodFrom(q) {
+  const year = Number(q.year) || new Date().getFullYear();
+  const quarter = [1, 2, 3, 4].includes(Number(q.quarter)) ? Number(q.quarter) : null;
+  const month = Number(q.month) >= 1 && Number(q.month) <= 12 ? Number(q.month) : null;
+  return { year, quarter: month ? null : quarter, month };
+}
+c.get('/categories', (req, res) => res.json(acc.CATEGORIES));
+c.get('/accounting', (req, res) => {
+  const all = accountingEntries(req.client.id, req.query.validated === '1');
+  const years = [...new Set(all.map(e => Number(e.date.slice(0, 4))).filter(Boolean))].sort((a, b) => b - a);
+  res.json({ ...acc.compute(all, periodFrom(req.query)), years, catalog: acc.CATEGORIES });
+});
+c.get('/accounting.csv', (req, res) => {
+  const p = periodFrom(req.query);
+  const r = acc.compute(accountingEntries(req.client.id, req.query.validated === '1'), p);
+  const name = `libro-ingresos-gastos-${p.year}${p.quarter ? '-T' + p.quarter : ''}${p.month ? '-' + String(p.month).padStart(2, '0') : ''}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+  res.send(acc.toCsv(r.entries));
+});
+
+// Apuntes manuales: gastos e ingresos sin documento (nóminas, alquiler, cuotas…)
+function entryFromBody(b, prev = {}) {
+  const kind = b.kind === 'ingreso' || b.kind === 'gasto' ? b.kind : prev.kind;
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(b.fecha || '')) ? b.fecha : acc.toIso(b.fecha) || prev.fecha;
+  const concepto = clean(b.concepto) ?? prev.concepto;
+  const n = v => { const x = v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.')); return Number.isFinite(x) ? x : null; };
+  const base = 'base' in b ? n(b.base) : prev.base;
+  const iva = 'iva' in b ? (n(b.iva) ?? 0) : (prev.iva ?? 0);
+  const retencion = 'retencion' in b ? (n(b.retencion) ?? 0) : (prev.retencion ?? 0);
+  if (!kind) throw Object.assign(new Error('Indica si es un gasto o un ingreso'), { status: 400 });
+  if (!fecha) throw Object.assign(new Error('La fecha no es válida'), { status: 400 });
+  if (!concepto) throw Object.assign(new Error('El concepto es obligatorio'), { status: 400 });
+  if (base === null) throw Object.assign(new Error('El importe es obligatorio'), { status: 400 });
+  const category = acc.isCategory(kind, b.category) ? b.category : (acc.isCategory(kind, prev.category) ? prev.category : (kind === 'gasto' ? 'otros_gastos' : 'otros_ingresos'));
+  return { kind, fecha, concepto, category, tercero: 'tercero' in b ? clean(b.tercero) : prev.tercero ?? null, base, iva, retencion,
+    total: Math.round((base + iva - retencion) * 100) / 100, paid: 'paid' in b ? (b.paid ? 1 : 0) : (prev.paid ?? 1) };
+}
+c.get('/entries', (req, res) => res.json(db.prepare('SELECT * FROM entries WHERE client_id = ? ORDER BY fecha DESC, id DESC').all(req.client.id)));
+c.post('/entries', (req, res) => {
+  const e = entryFromBody(req.body || {});
+  const r = db.prepare('INSERT INTO entries (client_id, kind, fecha, concepto, category, tercero, base, iva, retencion, total, paid) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+    .run(req.client.id, e.kind, e.fecha, e.concepto, e.category, e.tercero, e.base, e.iva, e.retencion, e.total, e.paid);
+  res.status(201).json({ id: Number(r.lastInsertRowid) });
+});
+c.patch('/entries/:id', (req, res) => {
+  const prev = db.prepare('SELECT * FROM entries WHERE id = ? AND client_id = ?').get(Number(req.params.id), req.client.id);
+  if (!prev) return res.status(404).json({ error: 'Apunte no encontrado' });
+  const e = entryFromBody(req.body || {}, prev);
+  db.prepare('UPDATE entries SET kind=?, fecha=?, concepto=?, category=?, tercero=?, base=?, iva=?, retencion=?, total=?, paid=? WHERE id=?')
+    .run(e.kind, e.fecha, e.concepto, e.category, e.tercero, e.base, e.iva, e.retencion, e.total, e.paid, prev.id);
+  res.json({ ok: true });
+});
+c.delete('/entries/:id', (req, res) => {
+  db.prepare('DELETE FROM entries WHERE id = ? AND client_id = ?').run(Number(req.params.id), req.client.id);
+  res.json({ ok: true });
 });
 
 c.delete('/documents/:id', (req, res) => {
@@ -417,13 +528,13 @@ function sameValue(k, a, b) {
 }
 function accuracyFor(clientId) {
   const docs = db.prepare("SELECT id, filename, extracted_json, corrected_json FROM documents WHERE client_id = ? AND status = 'validado'").all(clientId);
-  const per = Object.fromEntries(['doc_type', ...FIELD_KEYS].map(k => [k, { ok: 0, wrong: 0, missing: 0, extra: 0 }]));
+  const per = Object.fromEntries(['doc_type', 'direction', ...FIELD_KEYS].map(k => [k, { ok: 0, wrong: 0, missing: 0, extra: 0 }]));
   const detail = [];
   let ok = 0, total = 0;
   for (const d of docs) {
     const ex = JSON.parse(d.extracted_json || '{}'), co = JSON.parse(d.corrected_json || '{}');
     const row = { id: d.id, filename: d.filename, fields: {} };
-    const pairs = [['doc_type', ex.doc_type, co.doc_type], ...FIELD_KEYS.map(k => [k, ex.fields?.[k] ?? null, co.fields?.[k] ?? null])];
+    const pairs = [['doc_type', ex.doc_type, co.doc_type], ['direction', ex.direction ?? null, co.direction ?? null], ...FIELD_KEYS.map(k => [k, ex.fields?.[k] ?? null, co.fields?.[k] ?? null])];
     for (const [k, a, b] of pairs) {
       const emptyA = a === null || a === '', emptyB = b === null || b === '';
       let s;

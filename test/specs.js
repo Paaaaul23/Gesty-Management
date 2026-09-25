@@ -199,3 +199,37 @@ for (const s of holdout) {
   };
 }
 specs.push(...holdout);
+
+// ---------------------------------------------------------------- emitidos, rectificativa y presupuesto
+// En los emitidos la empresa (Torca 3D) es quien emite y el tercero esperado es el cliente.
+const OWN_AS_ISSUER = { name: 'Torca 3D S.L.', nif: OWN.nif, addr: OWN.addr, phone: '986 11 00 22', email: 'facturas@torca3d.es' };
+const extra = [
+  { id: 'e01-emitida', type: 'factura', layout: 'clasica', direction: 'emitido', supplier: OWN_AS_ISSUER,
+    customer: { name: 'Hostelería Bahía de Vigo S.L.', nif: cif('B', '3602417'), addr: 'Rúa Montero Ríos 14, 36201 Vigo' },
+    numero: 'T3D-2025-0041', fecha: '14/04/2025', vencimiento: '14/05/2025', pago: 'Transferencia', iban: 'ES91 2100 0418 4502 0005 1332',
+    lines: [{ d: 'Impresión 3D de piezas decorativas', q: 40, p: 6.5, iva: 21 }, { d: 'Diseño y modelado', q: 4, p: 35, iva: 21 }] },
+  { id: 'e02-emitida-tabla', type: 'factura', layout: 'cabeceraTabla', direction: 'emitido', supplier: OWN_AS_ISSUER,
+    customer: { name: 'Clínica Dental Sonrisa S.L.P.', nif: cif('B', '2774501'), addr: 'Avda. de Castrelos 50, 36210 Vigo' },
+    numero: 'T3D-2025-0042', fecha: '22/04/2025', vencimiento: '22/05/2025', pago: 'Recibo domiciliado', iban: 'ES66 0182 5322 2102 0161 7382',
+    lines: [{ d: 'Férulas impresas en resina biocompatible', q: 12, p: 18, iva: 21 }, { d: 'Modelos dentales de estudio', q: 20, p: 7.5, iva: 21 }] },
+  { id: 'e03-presupuesto', type: 'presupuesto', layout: 'clasica', title: 'PRESUPUESTO', numLabel: 'Nº Presupuesto', direction: 'emitido', supplier: OWN_AS_ISSUER,
+    customer: { name: 'Arquitectura Miño Estudio S.L.', nif: cif('B', '3688901'), addr: 'Rúa Colón 26, 36201 Vigo' },
+    numero: 'P-2025-017', fecha: '02/05/2025',
+    lines: [{ d: 'Maqueta arquitectónica escala 1:200', q: 1, p: 850, iva: 21 }, { d: 'Iluminación LED de maqueta', q: 1, p: 120, iva: 21 }] },
+  { id: 'r01-rectificativa', type: 'rectificativa', layout: 'clasica', title: 'FACTURA RECTIFICATIVA', numLabel: 'Nº Rectificativa',
+    supplier: { name: 'Distribuciones Norte S.L.', nif: cif('B', '3625148'), addr: 'Polígono A Granxa, Parcela 14, 36400 Porriño', phone: '986 334 512', email: 'facturacion@disnorte.es' },
+    numero: 'R-2024/0007', fecha: '20/03/2024', pago: 'Transferencia bancaria',
+    lines: [{ d: 'Devolución filamento PLA defectuoso (rectifica F-2024/0153)', q: 2, p: 18.5, iva: 21 }] },
+];
+for (const s of extra) {
+  s.own = s.customer || OWN;
+  s.t = totals(s.lines, {});
+  s.expected = {
+    doc_type: s.type, direction: s.direction || 'recibido',
+    fields: { proveedor: (s.customer || s.supplier).name, nif: (s.customer || s.supplier).nif, numero: s.numero, fecha: s.fecha, vencimiento: s.vencimiento || null,
+      base: s.t.base, iva_tipo: s.t.iva_tipo, iva: s.t.iva, total: s.t.total, forma_pago: s.pago || null, iban: s.iban || null },
+    lines: s.lines.map(l => ({ descripcion: l.d, cantidad: l.q, precio: l.p, importe: l.imp })),
+  };
+}
+specs.push(...extra);
+for (const s of specs) s.expected.direction ||= 'recibido';
