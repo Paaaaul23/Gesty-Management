@@ -90,6 +90,42 @@ CREATE TABLE IF NOT EXISTS entries (
   paid INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS tax_filings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  modelo TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  period TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'presentado',
+  presented_at TEXT,
+  justificante TEXT,
+  amount REAL,
+  notes TEXT,
+  snapshot_json TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (client_id, modelo, year, period)
+);
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+  user_id INTEGER,
+  user_name TEXT,
+  action TEXT NOT NULL,
+  entity TEXT,
+  entity_id INTEGER,
+  detail TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS audit_entity ON audit_log (client_id, entity, entity_id);
+CREATE TABLE IF NOT EXISTS doc_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  from_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  to_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  auto INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (from_id, to_id)
+);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
@@ -105,6 +141,7 @@ addColumn('documents', 'direction', "TEXT");           // recibido | emitido
 addColumn('documents', 'category', "TEXT");            // categoría contable
 addColumn('documents', 'paid', "INTEGER NOT NULL DEFAULT 0");
 addColumn('documents', 'paid_at', "TEXT");
+addColumn('clients', 'fiscal_json', "TEXT");          // perfil fiscal (forma jurídica, régimen de IVA…)
 db.exec("UPDATE documents SET direction = COALESCE(json_extract(extracted_json, '$.direction'), 'recibido') WHERE direction IS NULL");
 
 function getSetting(key, fallback = null) {

@@ -15,11 +15,15 @@ const CATEGORIES = {
     ['profesionales', 'Servicios profesionales'],
     ['software', 'Software, internet y hosting'],
     ['marketing', 'Publicidad y marketing'],
-    ['transporte', 'Transporte, envíos y combustible'],
+    ['transporte', 'Transporte y envíos'],
+    ['vehiculo', 'Vehículo y combustible'],
+    ['viajes', 'Viajes, comidas y dietas'],
     ['reparaciones', 'Reparaciones y mantenimiento'],
     ['seguros', 'Seguros'],
     ['bancos', 'Bancos y comisiones'],
     ['tributos', 'Impuestos y tasas'],
+    ['inversion', 'Bienes de inversión (maquinaria, equipos)'],
+    ['multas', 'Multas y sanciones'],
     ['otros_gastos', 'Otros gastos'],
   ],
   ingreso: [
@@ -39,7 +43,11 @@ const RULES = [
   ['profesionales', /\b(asesor[ií]a|gestor[ií]a|abogad|notar|consultor|auditor|honorarios|modelo 303|modelo 111|contable)\b/],
   ['software', /\b(software|licencia|suscripci[oó]n|hosting|dominio|servidor|vps|cloud|saas|google workspace|microsoft 365|adobe)\b/],
   ['marketing', /\b(publicidad|campa[ñn]a|marketing|anuncio|flyer|tarjetas de visita|dise[ñn]o gr[aá]fico|redes sociales|google ads|meta ads)\b/],
-  ['transporte', /\b(transporte|mensajer[ií]a|env[ií]o|portes|paqueter[ií]a|seur|mrw|correos|gls|dhl|combustible|gasolina|di[eé]sel|gasoil|peaje|parking)\b/],
+  ['multas', /\b(multa|sanci[oó]n|recargo de apremio|dgt)\b/],
+  ['vehiculo', /\b(combustible|gasolina|di[eé]sel|gasoil|carburante|peaje|parking|aparcamiento|taller|neum[aá]tico|itv|leasing)\b/],
+  ['viajes', /\b(restaurante|men[uú] del d[ií]a|comida|cena|hotel|alojamiento|billete|vuelo|renfe|tren|taxi|dieta)\b/],
+  ['transporte', /\b(transporte|mensajer[ií]a|env[ií]o|portes|paqueter[ií]a|seur|mrw|correos|gls|dhl)\b/],
+  ['inversion', /\b(impresora 3d|maquinaria|m[aá]quina|ordenador|port[aá]til|equipo inform[aá]tico|mobiliario|instalaci[oó]n industrial)\b/],
   ['reparaciones', /\b(reparaci[oó]n|mantenimiento|aver[ií]a|revisi[oó]n t[eé]cnica|recambio)\b/],
   ['seguros', /\b(seguro|p[oó]liza|mapfre|allianz|axa|mutua)\b/],
   ['bancos', /\b(comisi[oó]n|banco|bancaria|intereses|tpv)\b/],
@@ -64,7 +72,7 @@ const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
 const num = v => (v === null || v === undefined || v === '' || !isFinite(Number(v)) ? null : Number(v));
 
 // Documento guardado -> apunte contable (o null si no cuenta: albaranes, pedidos, presupuestos)
-function docToEntry(d) {
+function docToEntry(d, { ownNif } = {}) {
   const ex = d.extracted || {}, co = d.corrected || null;
   const src = co || ex;
   const f = src.fields || {};
@@ -89,6 +97,10 @@ function docToEntry(d) {
     total: total === null ? null : sign * Math.abs(total),
     paid: !!d.paid, validated: d.status === 'validado', incomplete: base === null,
     filename: d.filename,
+    ivaRate: num(f.iva_tipo),
+    // Datos para la deducibilidad del IVA: ticket/factura simplificada y si figura el NIF propio
+    simplificada: /factura\s+simplificada|\bticket\b|\bf\.?\s?simplificada/i.test(d.raw_text || ''),
+    recipientOk: ownNif ? String(d.raw_text || '').toUpperCase().replace(/[\s.\-]/g, '').includes(ownNif) : null,
   };
 }
 

@@ -8,6 +8,7 @@ const { db, UPLOAD_DIR, hashPassword, verifyPassword, getSetting, setSetting } =
 const { analyze } = require('./extract');
 const ai = require('./ai');
 const acc = require('./accounting');
+const fiscal = require('./fiscal');
 
 const PORT = Number(process.env.PORT) || 3000;
 const SESSION_DAYS = 7;
@@ -56,6 +57,15 @@ function clientScope(req, res, next) {
 }
 
 const clean = v => (v === undefined || v === null ? null : String(v).trim() || null);
+
+// Trazabilidad: registro de cada acción (quién, cuándo, qué)
+function audit(req, action, entity = null, entityId = null, detail = null) {
+  try {
+    db.prepare('INSERT INTO audit_log (client_id, user_id, user_name, action, entity, entity_id, detail) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(req.client?.id ?? null, req.user?.id ?? null, req.user ? (req.user.role === 'admin' ? `${req.user.name} (administrador)` : req.user.name) : null,
+        action, entity, entityId, detail === null ? null : typeof detail === 'string' ? detail : JSON.stringify(detail));
+  } catch (e) { console.error('No se pudo registrar la actividad:', e.message); }
+}
 
 // ---------------------------------------------------------------- auth
 
@@ -231,12 +241,18 @@ c.get('/summary', (req, res) => {
     byDirection: db.prepare("SELECT direction d, COUNT(*) n FROM documents WHERE client_id = ? GROUP BY direction").all(id),
     finance: (() => {
       // Año en curso; si aún no tiene movimientos, el último año que sí los tenga
-      const all = accountingEntries(id, false);
+      const all = accountingEntries(req.client, false);
       const years = all.map(e => Number(e.date.slice(0, 4))).filter(Boolean);
       const now = new Date().getFullYear();
       const year = years.includes(now) || !years.length ? now : Math.max(...years);
       const r = acc.compute(all, { year });
-      return { year, ...r.totals, porCobrar: r.pending.porCobrar.total, porPagar: r.pending.porPagar.total };
+      const profile = fiscal.profileOf(req.client);
+      const filings = db.prepare('SELECT * FROM tax_filings WHERE client_id = ?').all(id);
+      const today = new Date().toISOString().slice(0, 10);
+      const cal = [...(years.includes(now - 1) ? fiscal.calendar(all, profile, now - 1, filings) : []), ...fiscal.calendar(all, profile, now, filings)].filter(o => o.required && !o.status && o.deadline >= `${now}-01-01`);
+      const next = cal.filter(o => o.deadline >= today).sort((a, b) => a.deadline.localeCompare(b.deadline))[0] || null;
+      return { year, ...r.totals, porCobrar: r.pending.porCobrar.total, porPagar: r.pending.porPagar.total,
+        reserva: fiscal.reserve(cal, profile).total, next: next && { modelo: next.modelo, name: next.name, period: next.period, deadline: next.deadline, result: next.result } };
     })(),
     recent: db.prepare('SELECT id, filename, doc_type, direction, status, created_at, extracted_json FROM documents WHERE client_id = ? ORDER BY id DESC LIMIT 6').all(id)
       .map(d => ({ ...d, extracted_json: undefined, score: JSON.parse(d.extracted_json || '{}').score ?? null })),
@@ -250,6 +266,7 @@ c.patch('/company', (req, res) => {
   const name = clean(b.name) || req.client.name;
   db.prepare('UPDATE clients SET name=?, nif=?, email=?, phone=? WHERE id=?')
     .run(name, clean(b.nif), clean(b.email), clean(b.phone), req.client.id);
+  audit(req, 'Datos de la empresa actualizados', 'empresa', req.client.id);
   res.json({ ok: true });
 });
 
@@ -359,7 +376,10 @@ c.post('/documents', upload.single('file'), async (req, res) => {
     VALUES (?, ?, ?, ?, ?, 'subida', ?, ?, ?, ?, ?, ?)`)
     .run(req.client.id, checkLocal(req, req.body?.local_id), filename, stored, f.mimetype, a.extracted.doc_type, a.raw_text, a.ocr_confidence, JSON.stringify(a.extracted),
       direction, categoryFor(direction, a.extracted));
-  res.status(201).json(docOut(db.prepare('SELECT * FROM documents WHERE id = ?').get(r.lastInsertRowid), true));
+  const newId = Number(r.lastInsertRowid);
+  audit(req, `Documento subido y leído (${a.extracted.engine === 'ia' ? 'con IA' : 'lectura local'})`, 'documento', newId, `${filename} · ${a.extracted.doc_type || 'sin tipo'} ${direction}`);
+  autoLink(req, newId);
+  res.status(201).json(docOut(db.prepare('SELECT * FROM documents WHERE id = ?').get(newId), true));
 });
 
 c.get('/documents', (req, res) => {
@@ -402,6 +422,8 @@ c.post('/documents/:id/reanalyze', async (req, res) => {
   a.extracted.ms = Date.now() - started;
   db.prepare('UPDATE documents SET doc_type=?, raw_text=?, ocr_confidence=?, extracted_json=?, direction=? WHERE id=?')
     .run(a.extracted.doc_type, a.raw_text, a.ocr_confidence, JSON.stringify(a.extracted), direction || a.extracted.direction || 'recibido', d.id);
+  audit(req, 'Documento leído de nuevo', 'documento', d.id);
+  autoLink(req, d.id);
   res.json(docOut(getDoc(req), true));
 });
 
@@ -427,6 +449,9 @@ c.put('/documents/:id/validate', (req, res) => {
   db.prepare(`UPDATE documents SET corrected_json=?, status='validado', validated_at=datetime('now'), local_id=?, direction=?, category=?, paid=?,
     paid_at = CASE WHEN ? = 1 THEN COALESCE(paid_at, datetime('now')) ELSE NULL END WHERE id=?`)
     .run(JSON.stringify(corrected), 'local_id' in b ? checkLocal(req, b.local_id) : d.local_id, direction, category, paid, paid, d.id);
+  const prev = (JSON.parse(d.corrected_json || 'null') || JSON.parse(d.extracted_json || '{}')).fields || {};
+  const changed = FIELD_KEYS.filter(k => String(prev[k] ?? '') !== String(fields[k] ?? '')).map(k => `${k}: ${prev[k] ?? '—'} → ${fields[k] ?? '—'}`);
+  audit(req, d.status === 'validado' ? 'Datos corregidos' : 'Documento validado', 'documento', d.id, changed.length ? changed.join('; ') : 'sin cambios');
   res.json(docOut(getDoc(req), true));
 });
 
@@ -444,13 +469,20 @@ c.patch('/documents/:id', (req, res) => {
   const paid = 'paid' in b ? (b.paid ? 1 : 0) : d.paid;
   db.prepare(`UPDATE documents SET direction=?, category=?, paid=?, paid_at = CASE WHEN ? = 1 THEN COALESCE(paid_at, datetime('now')) ELSE NULL END WHERE id=?`)
     .run(direction, category, paid, paid, d.id);
+  const what = [];
+  if ('paid' in b && !!b.paid !== !!d.paid) what.push(b.paid ? (direction === 'emitido' ? 'marcado como cobrado' : 'marcado como pagado') : 'marcado como pendiente');
+  if (direction !== d.direction) what.push(`cambiado a ${direction}`);
+  if (category !== d.category) what.push(`categoría: ${acc.CATEGORY_LABEL[category] || category}`);
+  if (what.length) audit(req, 'Documento actualizado', 'documento', d.id, what.join('; '));
   res.json(docOut(getDoc(req), false));
 });
 
 // ---------------------------------------------------------------- contabilidad
-function accountingEntries(clientId, onlyValidated) {
+function accountingEntries(client, onlyValidated) {
+  const clientId = client.id;
+  const ownNif = client.nif ? client.nif.toUpperCase().replace(/[\s.\-]/g, '').replace(/^ES/, '') : null;
   const docs = db.prepare(`SELECT * FROM documents WHERE client_id = ?${onlyValidated ? " AND status = 'validado'" : ''}`).all(clientId)
-    .map(d => acc.docToEntry({ ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null') }))
+    .map(d => acc.docToEntry({ ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null') }, { ownNif }))
     .filter(Boolean);
   const manual = db.prepare('SELECT * FROM entries WHERE client_id = ?').all(clientId).map(acc.manualToEntry);
   return [...docs, ...manual];
@@ -463,13 +495,13 @@ function periodFrom(q) {
 }
 c.get('/categories', (req, res) => res.json(acc.CATEGORIES));
 c.get('/accounting', (req, res) => {
-  const all = accountingEntries(req.client.id, req.query.validated === '1');
+  const all = accountingEntries(req.client, req.query.validated === '1');
   const years = [...new Set(all.map(e => Number(e.date.slice(0, 4))).filter(Boolean))].sort((a, b) => b - a);
   res.json({ ...acc.compute(all, periodFrom(req.query)), years, catalog: acc.CATEGORIES });
 });
 c.get('/accounting.csv', (req, res) => {
   const p = periodFrom(req.query);
-  const r = acc.compute(accountingEntries(req.client.id, req.query.validated === '1'), p);
+  const r = acc.compute(accountingEntries(req.client, req.query.validated === '1'), p);
   const name = `libro-ingresos-gastos-${p.year}${p.quarter ? '-T' + p.quarter : ''}${p.month ? '-' + String(p.month).padStart(2, '0') : ''}.csv`;
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
@@ -498,6 +530,7 @@ c.post('/entries', (req, res) => {
   const e = entryFromBody(req.body || {});
   const r = db.prepare('INSERT INTO entries (client_id, kind, fecha, concepto, category, tercero, base, iva, retencion, total, paid) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
     .run(req.client.id, e.kind, e.fecha, e.concepto, e.category, e.tercero, e.base, e.iva, e.retencion, e.total, e.paid);
+  audit(req, 'Apunte manual creado', 'apunte', Number(r.lastInsertRowid), `${e.kind} · ${e.concepto} · ${e.total} €`);
   res.status(201).json({ id: Number(r.lastInsertRowid) });
 });
 c.patch('/entries/:id', (req, res) => {
@@ -506,10 +539,12 @@ c.patch('/entries/:id', (req, res) => {
   const e = entryFromBody(req.body || {}, prev);
   db.prepare('UPDATE entries SET kind=?, fecha=?, concepto=?, category=?, tercero=?, base=?, iva=?, retencion=?, total=?, paid=? WHERE id=?')
     .run(e.kind, e.fecha, e.concepto, e.category, e.tercero, e.base, e.iva, e.retencion, e.total, e.paid, prev.id);
+  audit(req, 'Apunte manual modificado', 'apunte', prev.id, `${e.concepto} · ${e.total} €`);
   res.json({ ok: true });
 });
 c.delete('/entries/:id', (req, res) => {
-  db.prepare('DELETE FROM entries WHERE id = ? AND client_id = ?').run(Number(req.params.id), req.client.id);
+  const r = db.prepare('DELETE FROM entries WHERE id = ? AND client_id = ?').run(Number(req.params.id), req.client.id);
+  if (r.changes) audit(req, 'Apunte manual eliminado', 'apunte', Number(req.params.id));
   res.json({ ok: true });
 });
 
@@ -517,6 +552,7 @@ c.delete('/documents/:id', (req, res) => {
   const d = getDoc(req);
   db.prepare('DELETE FROM documents WHERE id = ?').run(d.id);
   fs.rm(path.join(UPLOAD_DIR, d.stored_name), { force: true }, () => {});
+  audit(req, 'Documento eliminado', 'documento', d.id, d.filename);
   res.json({ ok: true });
 });
 
@@ -551,6 +587,142 @@ function accuracyFor(clientId) {
   return { documents: docs.length, overall: total ? Math.round(ok / total * 1000) / 10 : null, per, detail };
 }
 c.get('/accuracy', (req, res) => res.json(accuracyFor(req.client.id)));
+
+// ---------------------------------------------------------------- trazabilidad: documentos relacionados
+const docNumber = d => { const j = JSON.parse(d.corrected_json || 'null') || JSON.parse(d.extracted_json || '{}'); return j?.fields?.numero || null; };
+const flatTxt = t => String(t || '').toUpperCase().replace(/[\s.]/g, '');
+// Enlaza automáticamente documentos que se citan entre sí ("Su pedido: PED-0921", "Albarán 24/1532"…)
+function autoLink(req, id) {
+  const me = db.prepare('SELECT * FROM documents WHERE id = ?').get(id);
+  if (!me) return;
+  const myNum = docNumber(me), myText = flatTxt(me.raw_text);
+  const others = db.prepare('SELECT id, raw_text, extracted_json, corrected_json FROM documents WHERE client_id = ? AND id <> ?').all(me.client_id, id);
+  const ok = n => n && n.length >= 4 && /\d/.test(n);
+  for (const o of others) {
+    const oNum = docNumber(o);
+    const cites = (ok(oNum) && myText.includes(flatTxt(oNum))) || (ok(myNum) && flatTxt(o.raw_text).includes(flatTxt(myNum)));
+    if (!cites || (oNum && myNum && flatTxt(oNum) === flatTxt(myNum))) continue;
+    const r = db.prepare('INSERT OR IGNORE INTO doc_links (client_id, from_id, to_id, auto) VALUES (?, ?, ?, 1)').run(me.client_id, Math.min(id, o.id), Math.max(id, o.id));
+    if (r.changes) audit(req, 'Documentos relacionados automáticamente', 'documento', id, `con el documento ${oNum || o.id}`);
+  }
+}
+function linkedDocs(clientId, id) {
+  return db.prepare(`SELECT d.id, d.filename, d.doc_type, d.direction, d.status, d.created_at, d.extracted_json, d.corrected_json, l.auto FROM doc_links l
+      JOIN documents d ON d.id = CASE WHEN l.from_id = ? THEN l.to_id ELSE l.from_id END
+      WHERE l.client_id = ? AND (l.from_id = ? OR l.to_id = ?)`).all(id, clientId, id, id)
+    .map(d => { const j = JSON.parse(d.corrected_json || 'null') || JSON.parse(d.extracted_json || '{}'); return { id: d.id, filename: d.filename, doc_type: j.doc_type || d.doc_type, direction: d.direction, status: d.status, auto: !!d.auto, numero: j.fields?.numero, fecha: j.fields?.fecha, tercero: j.fields?.proveedor, total: j.fields?.total }; });
+}
+c.get('/documents/:id/links', (req, res) => { const d = getDoc(req); res.json(linkedDocs(req.client.id, d.id)); });
+c.post('/documents/:id/links', (req, res) => {
+  const d = getDoc(req);
+  const other = db.prepare('SELECT id FROM documents WHERE id = ? AND client_id = ?').get(Number(req.body?.to_id), req.client.id);
+  if (!other || other.id === d.id) return res.status(400).json({ error: 'Documento no válido' });
+  db.prepare('INSERT OR IGNORE INTO doc_links (client_id, from_id, to_id, auto) VALUES (?, ?, ?, 0)').run(req.client.id, Math.min(d.id, other.id), Math.max(d.id, other.id));
+  audit(req, 'Documentos relacionados', 'documento', d.id, `con el documento ${other.id}`);
+  res.json(linkedDocs(req.client.id, d.id));
+});
+c.delete('/documents/:id/links/:other', (req, res) => {
+  const d = getDoc(req), o = Number(req.params.other);
+  db.prepare('DELETE FROM doc_links WHERE client_id = ? AND from_id = ? AND to_id = ?').run(req.client.id, Math.min(d.id, o), Math.max(d.id, o));
+  audit(req, 'Relación entre documentos eliminada', 'documento', d.id, `con el documento ${o}`);
+  res.json(linkedDocs(req.client.id, d.id));
+});
+c.get('/documents/:id/history', (req, res) => {
+  const d = getDoc(req);
+  res.json(db.prepare("SELECT * FROM audit_log WHERE client_id = ? AND entity = 'documento' AND entity_id = ? ORDER BY id DESC").all(req.client.id, d.id));
+});
+c.get('/activity', (req, res) => {
+  const limit = Math.min(500, Number(req.query.limit) || 200);
+  const entity = clean(req.query.entity);
+  const rows = entity
+    ? db.prepare('SELECT * FROM audit_log WHERE client_id = ? AND entity = ? ORDER BY id DESC LIMIT ?').all(req.client.id, entity, limit)
+    : db.prepare('SELECT * FROM audit_log WHERE client_id = ? ORDER BY id DESC LIMIT ?').all(req.client.id, limit);
+  res.json(rows);
+});
+
+// ---------------------------------------------------------------- fiscalidad
+const yearsOf = entries => [...new Set(entries.map(e => Number(e.date.slice(0, 4))).filter(Boolean))];
+const filingsOf = clientId => db.prepare('SELECT * FROM tax_filings WHERE client_id = ?').all(clientId);
+c.get('/fiscal/profile', (req, res) => res.json(fiscal.profileOf(req.client)));
+c.put('/fiscal/profile', (req, res) => {
+  const next = { ...fiscal.profileOf(req.client), ...fiscal.cleanProfile(req.body || {}) };
+  delete next.configured;
+  db.prepare('UPDATE clients SET fiscal_json = ? WHERE id = ?').run(JSON.stringify(next), req.client.id);
+  audit(req, 'Perfil fiscal actualizado', 'empresa', req.client.id, `${next.forma} · IVA ${next.regimen_iva}`);
+  res.json({ ...next, configured: true });
+});
+c.get('/fiscal', (req, res) => {
+  const year = Number(req.query.year) || new Date().getFullYear();
+  const profile = fiscal.profileOf(req.client);
+  const entries = accountingEntries(req.client, false);
+  const cal = fiscal.calendar(entries, profile, year, filingsOf(req.client.id));
+  // También lo pendiente del año anterior (4.º trimestre y anuales se presentan en enero-julio)
+  const hasPrev = entries.some(e => e.date.startsWith(String(year - 1)));
+  const prevCal = hasPrev ? fiscal.calendar(entries, profile, year - 1, filingsOf(req.client.id)).filter(o => o.deadline >= `${year}-01-01` && o.required && !o.status) : [];
+  const all = [...prevCal.map(o => ({ ...o, prevYear: true })), ...cal];
+  const today = new Date().toISOString().slice(0, 10);
+  const next = all.filter(o => o.required && !o.status && o.deadline >= today).sort((a, b) => a.deadline.localeCompare(b.deadline))[0] || null;
+  const years = [...new Set(entries.map(e => Number(e.date.slice(0, 4))).filter(Boolean).concat(new Date().getFullYear()))].sort((a, b) => b - a);
+  res.json({ year, years, profile, calendar: all, reserve: fiscal.reserve(all, profile), next, sinValidar: entries.filter(e => e.source === 'doc' && !e.validated && e.date.startsWith(String(year))).length });
+});
+c.post('/fiscal/filings', (req, res) => {
+  const b = req.body || {};
+  if (!fiscal.MODELS[b.modelo] || !Number(b.year) || !/^(\dT|\dP|0A)$/.test(String(b.period))) return res.status(400).json({ error: 'Modelo o periodo no válido' });
+  const status = b.status === 'domiciliado' ? 'domiciliado' : 'presentado';
+  db.prepare(`INSERT INTO tax_filings (client_id, modelo, year, period, status, presented_at, justificante, amount, notes, snapshot_json) VALUES (?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(client_id, modelo, year, period) DO UPDATE SET status=excluded.status, presented_at=excluded.presented_at, justificante=excluded.justificante, amount=excluded.amount, notes=excluded.notes, snapshot_json=excluded.snapshot_json`)
+    .run(req.client.id, String(b.modelo), Number(b.year), String(b.period), status, clean(b.presented_at) || new Date().toISOString().slice(0, 10), clean(b.justificante),
+      Number.isFinite(Number(b.amount)) ? Number(b.amount) : null, clean(b.notes), b.snapshot ? JSON.stringify(b.snapshot) : null);
+  audit(req, `Modelo ${b.modelo} marcado como ${status}`, 'impuesto', null, `${b.period} ${b.year}${b.justificante ? ' · justificante ' + b.justificante : ''}${b.amount ? ' · ' + b.amount + ' €' : ''}`);
+  res.json({ ok: true });
+});
+// Al empezar a usar Gesty: marcar como presentado todo lo vencido hasta hoy
+c.post('/fiscal/filings/bulk', (req, res) => {
+  const year = Number(req.body?.year);
+  const entries = accountingEntries(req.client, false);
+  const profile = fiscal.profileOf(req.client);
+  const due = [year - 1, year].flatMap(y => fiscal.calendar(entries, profile, y, filingsOf(req.client.id))).filter(o => o.overdue);
+  const ins = db.prepare("INSERT OR IGNORE INTO tax_filings (client_id, modelo, year, period, status, notes) VALUES (?, ?, ?, ?, 'presentado', 'Marcado en bloque como ya presentado')");
+  for (const o of due) ins.run(req.client.id, o.modelo, Number(o.periodStart.slice(0, 4)), o.period);
+  audit(req, 'Obligaciones vencidas marcadas como presentadas', 'impuesto', null, `${due.length} modelos`);
+  res.json({ ok: true, count: due.length });
+});
+c.delete('/fiscal/filings', (req, res) => {
+  const b = req.body || {};
+  const r = db.prepare('DELETE FROM tax_filings WHERE client_id = ? AND modelo = ? AND year = ? AND period = ?').run(req.client.id, String(b.modelo), Number(b.year), String(b.period));
+  if (r.changes) audit(req, `Modelo ${b.modelo} vuelve a pendiente`, 'impuesto', null, `${b.period} ${b.year}`);
+  res.json({ ok: true });
+});
+c.get('/fiscal/deducibility', (req, res) => {
+  const year = Number(req.query.year) || new Date().getFullYear();
+  const quarter = [1, 2, 3, 4].includes(Number(req.query.quarter)) ? Number(req.query.quarter) : null;
+  const entries = accountingEntries(req.client, false);
+  res.json({ year, quarter, years: yearsOf(entries), profile: fiscal.profileOf(req.client), ...fiscal.deducibilityReport(entries, fiscal.profileOf(req.client), year, quarter) });
+});
+
+// Libros registro de IVA: facturas emitidas y recibidas
+c.get('/books', (req, res) => {
+  const year = Number(req.query.year) || new Date().getFullYear();
+  const kind = req.query.kind === 'emitidas' ? 'ingreso' : 'gasto';
+  const quarter = [1, 2, 3, 4].includes(Number(req.query.quarter)) ? Number(req.query.quarter) : null;
+  const profile = fiscal.profileOf(req.client);
+  const all = accountingEntries(req.client, false);
+  const rows = all
+    .filter(e => e.source === 'doc' && e.kind === kind && e.date.startsWith(String(year)) && (!quarter || Math.ceil(Number(e.date.slice(5, 7)) / 3) === quarter))
+    .sort((a, b) => a.date.localeCompare(b.date) || String(a.numero).localeCompare(String(b.numero)))
+    .map((e, i) => ({ orden: i + 1, ...e, ivaDeducible: kind === 'gasto' ? fiscal.deductibility(e, profile).ivaDeducible : null }));
+  if (req.query.format === 'csv') {
+    const dec = v => (v === null || v === undefined ? '' : String(Math.round(v * 100) / 100).replace('.', ','));
+    const t = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const head = ['Nº orden', 'Fecha expedición', 'Nº factura', kind === 'ingreso' ? 'Cliente' : 'Proveedor', 'NIF', 'Tipo', 'Base imponible', 'Tipo IVA %', 'Cuota IVA', 'Recargo', 'Retención', 'Total', ...(kind === 'gasto' ? ['IVA deducible'] : [])];
+    const lines = rows.map(e => [e.orden, e.date.split('-').reverse().join('/'), t(e.numero), t(e.tercero), t(e.nif), e.doc_type === 'rectificativa' ? 'Rectificativa' : 'Factura',
+      dec(e.base), e.ivaRate ?? '', dec(e.iva), dec(e.recargo), dec(e.retencion), dec(e.total), ...(kind === 'gasto' ? [dec(e.ivaDeducible)] : [])].join(';'));
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="libro-registro-facturas-${kind === 'ingreso' ? 'emitidas' : 'recibidas'}-${year}${quarter ? '-T' + quarter : ''}.csv"`);
+    return res.send('\ufeff' + [head.join(';'), ...lines].join('\r\n'));
+  }
+  res.json({ year, quarter, years: yearsOf(all), kind: req.query.kind === 'emitidas' ? 'emitidas' : 'recibidas', rows });
+});
 
 app.use('/api/c', c);
 

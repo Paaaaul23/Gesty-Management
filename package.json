@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "seed": "node seed.js",
-    "eval": "node test/eval.js"
+    "eval": "node test/eval.js",
+    "test": "node --test test/fiscal.test.js"
   },
   "engines": {
     "node": ">=22.13"
