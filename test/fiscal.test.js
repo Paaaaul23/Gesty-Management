@@ -59,3 +59,34 @@ test('Reserva: solo lo que vence a partir de hoy', () => {
   assert.deepEqual(r.items.map(i => `${i.modelo} ${i.period}`).sort(), ['130 2T', '303 2T']);
   assert.equal(r.total, 1635.3);
 });
+
+// ---------------------------------------------------------------- contabilidad por partida doble
+const L = require('../ledger');
+const E2 = [
+  { id: 1, source: 'doc', kind: 'ingreso', date: '2025-02-10', base: 1000, iva: 210, recargo: 0, retencion: 0, total: 1210, category: 'ventas', tercero: 'Cliente A', numero: 'F1', paid: true, paidAt: '2025-03-01' },
+  { id: 2, source: 'doc', kind: 'gasto', date: '2025-02-15', base: 200, iva: 42, recargo: 0, retencion: 0, total: 242, category: 'compras', tercero: 'Prov', numero: 'X1', paid: false },
+  { id: 3, source: 'doc', kind: 'gasto', date: '2025-04-01', base: 5000, iva: 1050, recargo: 0, retencion: 0, total: 6050, category: 'inversion', tercero: 'Maquinaria', numero: 'M1', paid: true, paidAt: '2025-04-05' },
+  { id: 4, source: 'doc', kind: 'gasto', date: '2025-05-01', base: 300, iva: 63, recargo: 0, retencion: 45, total: 318, category: 'profesionales', tercero: 'Asesor', numero: 'A1', paid: true },
+  { id: 5, source: 'doc', kind: 'ingreso', date: '2025-06-01', base: -100, iva: -21, recargo: 0, retencion: 0, total: -121, category: 'ventas', tercero: 'Cliente A', numero: 'R1', doc_type: 'rectificativa', paid: false },
+];
+const FIL = [{ id: 1, modelo: '303', period: '1T', year: 2025, amount: 168, presented_at: '2025-04-18' }];
+const OPEN = [{ year: 2025, account: '572', amount: 10000 }, { year: 2025, account: '100', amount: -3000 }];
+const SL = { ...fis.DEFAULT_PROFILE, forma: 'sociedad' };
+
+test('Diario: cuadra y genera IVA, cobros, pagos y amortización', () => {
+  const b = L.books(E2, FIL, OPEN, SL, 2025, { today: '2026-01-15' });
+  assert.ok(b.totals.cuadra);
+  const amort = b.journal.find(e => e.concepto.startsWith('Amortización'));
+  assert.equal(amort.lines.find(l => l.a === '681').d, 452.05);          // 5.000 × 12 % × 275/365
+  const iva1 = b.journal.find(e => e.concepto === 'Liquidación de IVA 1T 2025');
+  assert.equal(iva1.lines.find(l => l.a === '4750').h, 168);
+});
+
+test('PyG y balance: resultado y cuadre', () => {
+  const b = L.books(E2, FIL, OPEN, SL, 2025, { today: '2026-01-15' });
+  assert.equal(b.resultado, -52.05);                                     // 900 − 200 − 300 − 452,05
+  assert.ok(b.balance.cuadra);
+  const next = L.books(E2, FIL, OPEN, SL, 2026, { today: '2026-01-15' });
+  assert.ok(next.balance.cuadra);
+  assert.equal(next.journal[0].lines.find(l => l.a === '121').d, 52.05);  // pérdidas del año anterior
+});

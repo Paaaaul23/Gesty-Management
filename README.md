@@ -13,6 +13,13 @@ Gestión para pequeños comercios. Entorno local.
   - *Libros registro* de facturas expedidas y recibidas, exportables a CSV.
   - *Perfil fiscal* en Configuración: autónomo o sociedad, régimen de IVA, estimación directa, tipo del IS, trabajadores, alquiler de local…
   - Son **borradores orientativos**: la presentación se hace en la Sede Electrónica de la AEAT con certificado digital, y conviene revisarlos con una asesoría (no contemplan prorrata, regímenes especiales, operaciones intracomunitarias ni compensaciones de periodos anteriores).
+- **Ventas y compras** (`sales.js`): crea presupuestos u ofertas, pedidos (de cliente o a proveedor), albaranes, facturas y facturas rectificativas con PDF.
+  - Numeración correlativa por serie y año (`F2026-0001`, `P2026-0001`…). Una factura emitida no se puede modificar ni borrar, ni emitir otra con fecha anterior: se corrige con una rectificativa. Cada factura lleva una huella encadenada con la anterior para detectar cambios.
+  - Conversión con un clic: presupuesto → pedido → albarán → factura (quedan enlazados), y facturación de varios albaranes en una sola factura.
+  - Recargo de equivalencia, retención de IRPF, descuentos por línea y varios tipos de IVA.
+  - Agenda de **clientes y proveedores** (con ventas, compras y pendiente de cada uno) y catálogo de **artículos y servicios**.
+  - Los documentos creados cuentan automáticamente en la contabilidad, los impuestos y los libros registro.
+- **Contabilidad general** (`ledger.js`): asientos por partida doble según el PGC de PYMES generados a partir de facturas, cobros y pagos, apuntes, liquidaciones de IVA, pagos de modelos y amortizaciones (lineal, 12 %). Libro diario, libro mayor, balance de sumas y saldos, cuenta de pérdidas y ganancias y balance de situación, con saldos iniciales, exportación a CSV e impresión.
 - **Trazabilidad**: *Historial de actividad* con quién hizo qué y cuándo (subidas, validaciones con los campos corregidos, pagos, apuntes, impuestos, configuración), y **documentos relacionados** en cada documento (oferta → pedido → albarán → factura), que se enlazan solos cuando uno cita el número de otro.
 
 ## Arrancar en Windows

@@ -126,6 +126,36 @@ CREATE TABLE IF NOT EXISTS doc_links (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (from_id, to_id)
 );
+CREATE TABLE IF NOT EXISTS contacts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL DEFAULT 'cliente' CHECK (kind IN ('cliente','proveedor','ambos')),
+  name TEXT NOT NULL,
+  nif TEXT,
+  address TEXT,
+  postal_city TEXT,
+  email TEXT,
+  phone TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS products (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  ref TEXT,
+  price REAL NOT NULL DEFAULT 0,
+  iva REAL NOT NULL DEFAULT 21,
+  unit TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS opening_balances (
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  year INTEGER NOT NULL,
+  account TEXT NOT NULL,
+  amount REAL NOT NULL,
+  PRIMARY KEY (client_id, year, account)
+);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
@@ -142,6 +172,19 @@ addColumn('documents', 'category', "TEXT");            // categoría contable
 addColumn('documents', 'paid', "INTEGER NOT NULL DEFAULT 0");
 addColumn('documents', 'paid_at', "TEXT");
 addColumn('clients', 'fiscal_json', "TEXT");          // perfil fiscal (forma jurídica, régimen de IVA…)
+// Datos de la empresa para los documentos que emite
+addColumn('clients', 'address', "TEXT");
+addColumn('clients', 'postal_city', "TEXT");
+addColumn('clients', 'iban', "TEXT");
+addColumn('clients', 'doc_footer', "TEXT");
+// Documentos creados en Gesty (presupuestos, pedidos, albaranes, facturas)
+addColumn('documents', 'draft_json', "TEXT");          // datos editables del documento
+addColumn('documents', 'doc_state', "TEXT");           // borrador | emitido | aceptado | rechazado | servido | entregado | facturado
+addColumn('documents', 'series', "TEXT");
+addColumn('documents', 'seq', "INTEGER");
+addColumn('documents', 'issued_at', "TEXT");
+addColumn('documents', 'hash', "TEXT");                // huella encadenada de las facturas emitidas
+addColumn('documents', 'prev_hash', "TEXT");
 db.exec("UPDATE documents SET direction = COALESCE(json_extract(extracted_json, '$.direction'), 'recibido') WHERE direction IS NULL");
 
 function getSetting(key, fallback = null) {

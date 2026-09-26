@@ -95,7 +95,7 @@ function docToEntry(d, { ownNif } = {}) {
     category: d.category || suggestCategory(direction, { proveedor: f.proveedor, lines: ex.lines, docType: type }),
     base: base === null ? null : sign * Math.abs(base), iva: sign * Math.abs(iva), recargo: sign * Math.abs(recargo), retencion: sign * Math.abs(retencion),
     total: total === null ? null : sign * Math.abs(total),
-    paid: !!d.paid, validated: d.status === 'validado', incomplete: base === null,
+    paid: !!d.paid, paidAt: d.paid_at ? String(d.paid_at).slice(0, 10) : null, validated: d.status === 'validado', incomplete: base === null,
     filename: d.filename,
     ivaRate: num(f.iva_tipo),
     // Datos para la deducibilidad del IVA: ticket/factura simplificada y si figura el NIF propio

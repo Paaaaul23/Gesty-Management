@@ -18,13 +18,16 @@
     </nav>
     <div class="section-label">Documentos</div>
     <nav class="nav">
-      <button data-page="documentos" data-dir="recibido"><svg class="i"><use href="/icons.svg#inbox"/></svg><span class="nav-label">Recibidos (compras)</span></button>
-      <button data-page="documentos" data-dir="emitido"><svg class="i"><use href="/icons.svg#send"/></svg><span class="nav-label">Emitidos (ventas)</span></button>
+      <button data-page="documentos" data-dir="emitido"><svg class="i"><use href="/icons.svg#send"/></svg><span class="nav-label">Ventas (emitidos)</span></button>
+      <button data-page="documentos" data-dir="recibido"><svg class="i"><use href="/icons.svg#inbox"/></svg><span class="nav-label">Compras (recibidos)</span></button>
       <button data-page="documentos" data-dir=""><svg class="i"><use href="/icons.svg#folder-open"/></svg><span class="nav-label">Todos los documentos</span></button>
+      <button data-page="contactos"><svg class="i"><use href="/icons.svg#contact"/></svg><span class="nav-label">Clientes y proveedores</span></button>
+      <button data-page="articulos"><svg class="i"><use href="/icons.svg#package"/></svg><span class="nav-label">Artículos y servicios</span></button>
     </nav>
     <div class="section-label">Contabilidad y fiscalidad</div>
     <nav class="nav">
       <button data-page="contabilidad"><svg class="i"><use href="/icons.svg#chart-column"/></svg><span class="nav-label">Gastos y beneficios</span></button>
+      <button data-page="general"><svg class="i"><use href="/icons.svg#scale"/></svg><span class="nav-label">Contabilidad general</span></button>
       <button data-page="impuestos"><svg class="i"><use href="/icons.svg#landmark"/></svg><span class="nav-label">Impuestos</span></button>
       <button data-page="deducibilidad"><svg class="i"><use href="/icons.svg#badge-percent"/></svg><span class="nav-label">Gastos deducibles</span></button>
       <button data-page="libros"><svg class="i"><use href="/icons.svg#book-open"/></svg><span class="nav-label">Libros registro</span></button>
@@ -107,10 +110,44 @@
       <div class="page" id="documentos">
         <div class="eyebrow" id="docsEyebrow">Archivo</div><h2 id="docsTitle">Documentos</h2><p class="sub" id="docsSub">Documentos capturados, su estado de revisión y los datos reconocidos.</p>
         <div class="card">
-          <div class="card-head"><div class="tabs" id="dirTabs"></div><button class="btn primary" onclick="uploadFor(docDir)"><svg class="i"><use href="/icons.svg#plus"/></svg>Subir</button></div>
+          <div class="card-head"><div class="tabs" id="dirTabs"></div><div class="actions" id="docActions"></div></div>
           <div class="tabs sub" id="docTabs"></div>
           <div class="table-wrap" id="docsTable"></div>
         </div>
+      </div>
+
+      <!-- EDITOR DE DOCUMENTOS PROPIOS -->
+      <div class="page" id="editor"></div>
+
+      <!-- CLIENTES Y PROVEEDORES -->
+      <div class="page" id="contactos">
+        <div class="eyebrow">Agenda</div><h2>Clientes y proveedores</h2><p class="sub">Tus clientes y proveedores con el volumen de operaciones y lo pendiente de cobro o pago. Se añaden solos al emitir documentos.</p>
+        <div class="card"><div class="card-head"><div class="tabs" id="ctTabs" style="margin:0"><button class="active" data-kind="">Todos</button><button data-kind="cliente">Clientes</button><button data-kind="proveedor">Proveedores</button></div>
+          <div class="actions"><button class="btn" onclick="importContacts()"><svg class="i"><use href="/icons.svg#download"/></svg>Importar de documentos</button><button class="btn primary" onclick="editContact()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo</button></div></div>
+          <div class="table-wrap" id="ctTable"></div></div>
+      </div>
+
+      <!-- ARTÍCULOS -->
+      <div class="page" id="articulos">
+        <div class="eyebrow">Catálogo</div><h2>Artículos y servicios</h2><p class="sub">Lo que vendes habitualmente, con su precio e IVA, para añadirlo rápido a presupuestos y facturas.</p>
+        <div class="card"><div class="card-head"><div class="card-title">Catálogo</div><button class="btn primary" onclick="editProduct()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo artículo</button></div><div class="table-wrap" id="prTable"></div></div>
+      </div>
+
+      <!-- CONTABILIDAD GENERAL -->
+      <div class="page" id="general">
+        <div class="eyebrow">Contabilidad</div><h2>Contabilidad general</h2>
+        <p class="sub">Asientos por partida doble según el Plan General de Contabilidad de PYMES, generados automáticamente a partir de tus facturas, cobros y pagos, apuntes, impuestos presentados y amortizaciones.</p>
+        <div class="filters">
+          <div class="field"><label>Ejercicio</label><select id="glYear"></select></div>
+          <label class="check-inline"><input type="checkbox" id="glValidated"> Solo documentos validados</label>
+          <div class="actions" style="margin-left:auto">
+            <button class="btn" onclick="editOpening()"><svg class="i"><use href="/icons.svg#landmark"/></svg>Saldos iniciales</button>
+            <button class="btn" onclick="exportLedger()"><svg class="i"><use href="/icons.svg#download"/></svg>Exportar CSV</button>
+            <button class="btn" onclick="printLedger()"><svg class="i"><use href="/icons.svg#printer"/></svg>Imprimir</button>
+          </div>
+        </div>
+        <div id="glNotice"></div>
+        <div class="card"><div class="tabs" id="glTabs"><button class="active" data-view="pyg">Pérdidas y ganancias</button><button data-view="balance">Balance de situación</button><button data-view="diario">Libro diario</button><button data-view="mayor">Libro mayor</button><button data-view="sumas">Sumas y saldos</button></div><div id="glBody"></div></div>
       </div>
 
       <!-- REVISIÓN DE UN DOCUMENTO -->
@@ -248,7 +285,7 @@ const CID = new URLSearchParams(location.search).get('cid');
 const capi = (p, o) => api('/api/c' + p + (CID ? (p.includes('?') ? '&' : '?') + 'cid=' + encodeURIComponent(CID) : ''), o);
 const fileUrl = id => `/api/c/documents/${id}/file` + (CID ? `?cid=${encodeURIComponent(CID)}` : '');
 
-const TITLES = { resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', contabilidad: 'Gastos y beneficios', impuestos: 'Impuestos', deducibilidad: 'Gastos deducibles', libros: 'Libros registro', actividad: 'Historial de actividad', precision: 'Precisión del reconocimiento', locales: 'Locales y empleados', config: 'Configuración' };
+const TITLES = { editor: 'Documento', contactos: 'Clientes y proveedores', articulos: 'Artículos y servicios', general: 'Contabilidad general', resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', contabilidad: 'Gastos y beneficios', impuestos: 'Impuestos', deducibilidad: 'Gastos deducibles', libros: 'Libros registro', actividad: 'Historial de actividad', precision: 'Precisión del reconocimiento', locales: 'Locales y empleados', config: 'Configuración' };
 const TYPE_TITLES = { '': 'Todos', factura: 'Facturas', rectificativa: 'Rectificativas', albaran: 'Albaranes', pedido: 'Pedidos', presupuesto: 'Presupuestos y ofertas' };
 const DIR_TITLES = { '': 'Todos los documentos', recibido: 'Recibidos', emitido: 'Emitidos' };
 // "Facturas emitidas", "Albaranes recibidos"…
@@ -273,7 +310,7 @@ function go(page, opts = {}) {
   $('#pageTitle').textContent = page === 'documentos' ? docsTitle() : TITLES[page];
   if (innerWidth < 720) $('#sidebar').classList.remove('open');
   scrollTo(0, 0);
-  ({ resumen: loadSummary, documentos: loadDocs, contabilidad: loadAccounting, impuestos: loadTaxes, deducibilidad: loadDeductibility, libros: loadBooks, actividad: loadActivity, precision: loadAccuracy, locales: loadLocales, config: () => { loadCompany(); loadFiscalProfile(); }, captura: loadLocalSelect })[page]?.();
+  ({ contactos: loadContacts, articulos: loadProducts, general: loadLedger, resumen: loadSummary, documentos: loadDocs, contabilidad: loadAccounting, impuestos: loadTaxes, deducibilidad: loadDeductibility, libros: loadBooks, actividad: loadActivity, precision: loadAccuracy, locales: loadLocales, config: () => { loadCompany(); loadFiscalProfile(); }, captura: loadLocalSelect })[page]?.();
 }
 $$('.nav button[data-page]').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.page === 'documentos' ? { dir: b.dataset.dir || '', type: '' } : {}));
 function uploadFor(dir) { go('captura'); $('#uploadDir').value = dir || ''; }
@@ -373,6 +410,11 @@ async function loadDocs() {
     : 'Todos los documentos capturados, recibidos y emitidos.';
   $('#dirTabs').innerHTML = Object.entries(DIR_TITLES).map(([k, v]) => `<button class="${k === docDir ? 'active' : ''}" onclick="go('documentos',{dir:'${k}'})">${k ? icon(k === 'emitido' ? 'send' : 'inbox') : ''}${k ? v : 'Todos'}</button>`).join('');
   $('#docTabs').innerHTML = Object.entries(TYPE_TITLES).map(([k, v]) => `<button class="${k === docType ? 'active' : ''}" onclick="go('documentos',{type:'${k}'})">${v}</button>`).join('');
+  const nb = (t, label, role = '') => `<button class="btn sm ${t === (docType || 'factura') ? 'primary' : ''}" onclick="newSale('${t}'${role ? `,'${role}'` : ''})">${icon('file-plus')}${label}</button>`;
+  $('#docActions').innerHTML = (docDir === 'emitido' ? nb('presupuesto', 'Presupuesto') + nb('pedido', 'Pedido') + nb('albaran', 'Albarán') + nb('factura', 'Factura')
+      + (docType === 'albaran' ? `<button class="btn sm" onclick="invoiceAlbaranes()">${icon('receipt-text')}Facturar albaranes</button>` : '')
+    : docDir === 'recibido' ? `<button class="btn sm" onclick="newSale('pedido','proveedor')">${icon('file-plus')}Pedido a proveedor</button>` : '')
+    + `<button class="btn sm" onclick="uploadFor(docDir)">${icon('upload')}Subir</button>`;
   $('#docsTable').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
     const q = new URLSearchParams(); if (docType) q.set('type', docType); if (docDir) q.set('dir', docDir);
@@ -381,9 +423,9 @@ async function loadDocs() {
     const party = docDir ? partyLabel(docDir) : 'Proveedor / cliente';
     $('#docsTable').innerHTML = `<table class="table"><thead><tr><th>Archivo</th><th>Tipo</th>${docDir ? '' : '<th>Dirección</th>'}<th>${party}</th><th>Número</th><th>Fecha doc.</th><th class="num">Total</th><th>Pago</th><th>Lectura</th><th>Estado</th></tr></thead><tbody>
       ${docs.map(d => { const f = (d.corrected || d.extracted)?.fields || {}; const t = d.corrected?.doc_type || d.doc_type; return `<tr class="clickable" onclick="openDoc(${d.id})">
-        <td><b>${esc(d.filename)}</b><div class="muted">Subido ${fmtDate(d.created_at)}</div></td>
+        <td><b>${esc(d.source === 'creado' ? (f.numero || 'Borrador') : d.filename)}</b><div class="muted">${d.source === 'creado' ? 'Creado' : 'Subido'} ${fmtDate(d.created_at)}</div></td>
         <td>${typeLabel(t)}</td>${docDir ? '' : `<td>${dirBadge(d.direction)}</td>`}<td>${esc(f.proveedor || '—')}</td><td>${esc(f.numero || '—')}</td><td>${esc(f.fecha || '—')}</td>
-        <td class="num">${money(t === 'rectificativa' && f.total ? -Math.abs(f.total) : f.total)}</td><td>${payBadge(d, t)}</td><td>${scoreBadge(d.extracted?.score)}</td><td>${statusBadge(d.status)}</td></tr>`; }).join('')}
+        <td class="num">${money(t === 'rectificativa' && f.total ? -Math.abs(f.total) : f.total)}</td><td>${d.doc_state === 'borrador' ? '' : payBadge(d, t)}</td><td>${d.source === 'creado' ? '<span class="badge teal">Creado</span>' : scoreBadge(d.extracted?.score)}</td><td>${d.source === 'creado' ? stateBadge(d.doc_state) : statusBadge(d.status)}</td></tr>`; }).join('')}
     </tbody></table>`;
   } catch (e) { toast(e.message, true); }
 }
@@ -391,6 +433,8 @@ async function loadDocs() {
 // ---------------------------------------------------------------- revisión
 let currentDoc = null;
 async function openDoc(id) {
+  const peek = await capi('/documents/' + id).catch(() => null);
+  if (peek?.source === 'creado') return openEditor(id);
   go('revision');
   $('#pageTitle').textContent = 'Revisión de documento';
   $('#revision').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
@@ -596,7 +640,9 @@ async function loadCompany() {
   const c = await capi('/company').catch(e => toast(e.message, true));
   if (!c) return;
   $('#companyForm').innerHTML = `<div class="card-title" style="margin-bottom:14px">Empresa</div><div class="form-grid">
-    ${field('name', 'Nombre', { value: c.name, required: true, full: true })}${field('nif', 'NIF / CIF', { value: c.nif })}${field('phone', 'Teléfono', { value: c.phone })}${field('email', 'Email', { value: c.email, type: 'email', full: true })}
+    ${field('name', 'Nombre o razón social', { value: c.name, required: true, full: true })}${field('nif', 'NIF / CIF', { value: c.nif })}${field('phone', 'Teléfono', { value: c.phone })}${field('email', 'Email', { value: c.email, type: 'email', full: true })}
+    ${field('address', 'Dirección', { value: c.address, full: true })}${field('postal_city', 'Código postal y localidad', { value: c.postal_city, full: true })}
+    ${field('iban', 'IBAN para cobros', { value: c.iban, full: true })}${field('doc_footer', 'Pie de los documentos (registro mercantil, condiciones…)', { value: c.doc_footer, full: true })}
     </div><div class="actions" style="margin-top:16px"><button class="btn primary" type="submit">${icon('check')}Guardar</button></div>`;
 }
 $('#companyForm').onsubmit = async e => {
@@ -1050,10 +1096,289 @@ async function loadDocExtras(d) {
   } catch (e) { box.innerHTML = ''; }
 }
 async function linkDoc(id) {
-  try { await capi(`/documents/${id}/links`, { method: 'POST', body: { to_id: Number($('#linkSel').value) } }); toast('Documentos relacionados'); loadDocExtras(currentDoc); } catch (e) { toast(e.message, true); }
+  try { await capi(`/documents/${id}/links`, { method: 'POST', body: { to_id: Number($('#linkSel').value) } }); toast('Documentos relacionados'); loadDocExtras({ id }); } catch (e) { toast(e.message, true); }
 }
 async function unlinkDoc(id, other) {
-  try { await capi(`/documents/${id}/links/${other}`, { method: 'DELETE' }); toast('Relación eliminada'); loadDocExtras(currentDoc); } catch (e) { toast(e.message, true); }
+  try { await capi(`/documents/${id}/links/${other}`, { method: 'DELETE' }); toast('Relación eliminada'); loadDocExtras({ id }); } catch (e) { toast(e.message, true); }
+}
+
+// ---------------------------------------------------------------- ventas y compras: editor
+const SALE_LABEL = { presupuesto: 'Presupuesto', pedido: 'Pedido', albaran: 'Albarán', factura: 'Factura', rectificativa: 'Factura rectificativa' };
+const STATE_LABEL = { borrador: ['gray', 'Borrador'], emitido: ['teal', 'Emitido'], aceptado: ['green', 'Aceptado'], rechazado: ['red', 'Rechazado'], servido: ['green', 'Servido'], anulado: ['red', 'Anulado'], entregado: ['green', 'Entregado'], facturado: ['green', 'Facturado'] };
+const stateBadge = st => { const [c, l] = STATE_LABEL[st] || ['gray', st || '—']; return `<span class="badge ${c}">${l}</span>`; };
+const RE = { 21: 5.2, 10: 1.4, 5: 0.62, 4: 0.5, 0: 0 };
+const rr = n => Math.round((n + Number.EPSILON) * 100) / 100;
+let sale = null, saleMeta = null, contacts = [], products = [];
+
+function saleTotals(d) {
+  const g = {};
+  for (const l of d.lines) { const imp = rr((+l.qty || 0) * (+l.price || 0) * (1 - (+l.dto || 0) / 100)); (g[l.iva] ||= { rate: +l.iva, base: 0 }).base = rr(g[l.iva].base + imp); }
+  const ivas = Object.values(g).sort((a, b) => b.rate - a.rate).map(x => ({ ...x, cuota: rr(x.base * x.rate / 100), re: d.recargo ? rr(x.base * (RE[x.rate] || 0) / 100) : 0 }));
+  const base = rr(ivas.reduce((a, x) => a + x.base, 0)), iva = rr(ivas.reduce((a, x) => a + x.cuota, 0)), re = rr(ivas.reduce((a, x) => a + x.re, 0)), ret = rr(base * (+d.irpf || 0) / 100);
+  return { ivas, base, iva, re, ret, total: rr(base + iva + re - ret) };
+}
+async function loadSaleRefs() {
+  [saleMeta, contacts, products] = await Promise.all([saleMeta || capi('/sales/meta'), capi('/contacts'), capi('/products')]);
+}
+async function newSale(type, role = 'cliente') {
+  await loadSaleRefs();
+  const today = new Date().toISOString().slice(0, 10);
+  sale = { id: null, doc_type: type, doc_state: 'borrador', draft: { role, party: {}, fecha: today, vencimiento: type === 'factura' ? new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10) : null,
+    lines: [{ desc: '', qty: 1, price: 0, dto: 0, iva: 21 }], irpf: 0, recargo: false, forma_pago: type === 'factura' ? 'Transferencia' : null, iban: saleMeta.company.iban || null, notes: null, validez: type === 'presupuesto' ? 30 : null }, links: [] };
+  go('editor'); renderEditor();
+}
+async function openEditor(id) {
+  go('editor');
+  $('#editor').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  try { await loadSaleRefs(); sale = await capi('/sales/' + id); if (!CATALOG) CATALOG = await capi('/categories'); renderEditor(); }
+  catch (e) { toast(e.message, true); }
+}
+function renderEditor() {
+  const d = sale.draft, type = sale.doc_type, issued = sale.doc_state && sale.doc_state !== 'borrador';
+  const isInv = type === 'factura' || type === 'rectificativa';
+  const ro = issued && isInv;                       // factura emitida: solo lectura
+  const dis = ro ? 'disabled' : '';
+  const role = d.role === 'proveedor' ? 'Proveedor' : 'Cliente';
+  const title = `${SALE_LABEL[type]}${d.role === 'proveedor' ? ' a proveedor' : ''} ${sale.numero || ''}`;
+  $('#pageTitle').textContent = sale.numero ? title : `Nuevo ${SALE_LABEL[type].toLowerCase()}`;
+  const optRate = v => [21, 10, 5, 4, 0].map(r => `<option value="${r}" ${+v === r ? 'selected' : ''}>${r} %</option>`).join('');
+  $('#editor').innerHTML = `
+    <button class="btn sm" onclick="go('documentos',{dir:'${d.role === 'proveedor' ? 'recibido' : 'emitido'}',type:''})" style="margin-bottom:14px">${icon('arrow-left')}Volver</button>
+    <div class="eyebrow">${d.role === 'proveedor' ? 'Compras' : 'Ventas'} · ${SALE_LABEL[type]}</div>
+    <h2>${esc(sale.numero ? title : 'Nuevo ' + SALE_LABEL[type].toLowerCase() + (d.role === 'proveedor' ? ' a proveedor' : ''))} ${stateBadge(sale.doc_state || 'borrador')}</h2>
+    <p class="sub">${ro ? 'Factura emitida: no se puede modificar ni borrar (numeración correlativa). Para corregirla, emite una factura rectificativa.' : issued ? 'Documento emitido: puedes seguir editándolo; conserva su número.' : 'Borrador: se numera al emitirlo.'}${sale.hash ? ` · Huella ${sale.hash.slice(0, 16)}…` : ''}</p>
+    <div class="grid halves">
+      <div class="card"><div class="card-title" style="margin-bottom:12px">${role}</div><div class="form-grid" id="edParty">
+        <div class="field full"><label>Nombre o razón social</label><input name="name" list="ctList" value="${esc(d.party.name || '')}" ${dis} placeholder="Escribe para buscar en tu agenda"></div>
+        <div class="field"><label>NIF / CIF</label><input name="nif" value="${esc(d.party.nif || '')}" ${dis}></div>
+        <div class="field"><label>Email</label><input name="email" value="${esc(d.party.email || '')}" ${dis}></div>
+        <div class="field full"><label>Dirección</label><input name="address" value="${esc(d.party.address || '')}" ${dis}></div>
+        <div class="field full"><label>Código postal y localidad</label><input name="postal_city" value="${esc(d.party.postal_city || '')}" ${dis}></div>
+      </div><datalist id="ctList">${contacts.filter(c => c.kind === 'ambos' || c.kind === (d.role === 'proveedor' ? 'proveedor' : 'cliente')).map(c => `<option value="${esc(c.name)}">${esc(c.nif || '')}</option>`).join('')}</datalist></div>
+      <div class="card"><div class="card-title" style="margin-bottom:12px">Datos del documento</div><div class="form-grid" id="edMeta">
+        <div class="field"><label>Fecha</label><input name="fecha" type="date" value="${d.fecha || ''}" ${dis}></div>
+        ${type === 'presupuesto' ? `<div class="field"><label>Validez (días)</label><input name="validez" inputmode="numeric" value="${d.validez ?? ''}" ${dis}></div>`
+          : `<div class="field"><label>${isInv ? 'Vencimiento' : 'Fecha de entrega'}</label><input name="vencimiento" type="date" value="${d.vencimiento || ''}" ${dis}></div>`}
+        <div class="field"><label>Referencia (su pedido…)</label><input name="ref" value="${esc(d.ref || '')}" ${dis}></div>
+        <div class="field"><label>Forma de pago</label><input name="forma_pago" list="fpList" value="${esc(d.forma_pago || '')}" ${dis}><datalist id="fpList"><option>Transferencia</option><option>Domiciliación bancaria</option><option>Tarjeta</option><option>Efectivo</option><option>Bizum</option><option>Pagaré 60 días</option></datalist></div>
+        <div class="field full"><label>IBAN para el pago</label><input name="iban" value="${esc(d.iban || '')}" ${dis}></div>
+        <div class="field"><label>Retención IRPF %</label><select name="irpf" ${dis}>${[0, 7, 15, 19].map(r => `<option value="${r}" ${+d.irpf === r ? 'selected' : ''}>${r ? r + ' %' : 'Sin retención'}</option>`).join('')}</select></div>
+        <div class="field"><label>Recargo de equivalencia</label><select name="recargo" ${dis}><option value="">No</option><option value="1" ${d.recargo ? 'selected' : ''}>Sí (cliente minorista)</option></select></div>
+      </div></div>
+    </div>
+    ${d.rect ? `<div class="notice" style="margin-top:16px">${icon('info')}<div>Rectifica la factura <b>${esc(d.rect.numero)}</b>. Motivo: ${esc(d.rect.motivo || '')}</div></div>` : ''}
+    <div class="card" style="margin-top:16px"><div class="card-head"><div class="card-title">Líneas</div>${ro ? '' : `<button class="btn sm" onclick="addLine()">${icon('plus')}Añadir línea</button>`}</div>
+      <div class="table-wrap"><table class="table" id="edLines"><thead><tr><th style="min-width:260px">Descripción</th><th class="num">Cantidad</th><th class="num">Precio</th><th class="num">Dto. %</th><th>IVA</th><th class="num">Importe</th><th></th></tr></thead><tbody>
+        ${d.lines.map((l, i) => `<tr data-i="${i}">
+          <td><input class="cell" name="desc" list="prList" value="${esc(l.desc)}" ${dis} placeholder="Artículo, servicio o texto"></td>
+          <td><input class="cell num" name="qty" inputmode="decimal" value="${l.qty}" ${dis}></td>
+          <td><input class="cell num" name="price" inputmode="decimal" value="${l.price}" ${dis}></td>
+          <td><input class="cell num" name="dto" inputmode="decimal" value="${l.dto || ''}" ${dis}></td>
+          <td><select class="cell" name="iva" ${dis}>${optRate(l.iva)}</select></td>
+          <td class="num" data-imp></td>
+          <td>${ro ? '' : `<button class="icon-btn" title="Quitar línea" onclick="delLine(${i})">${icon('x')}</button>`}</td></tr>`).join('')}
+      </tbody></table></div><datalist id="prList">${products.map(p => `<option value="${esc(p.name)}">${money(p.price)} · IVA ${p.iva} %</option>`).join('')}</datalist>
+      <div class="grid halves" style="margin-top:14px">
+        <div class="field"><label>Notas (aparecen en el documento)</label><textarea name="notes" id="edNotes" rows="4" ${dis}>${esc(d.notes || '')}</textarea></div>
+        <div id="edTotals"></div>
+      </div>
+    </div>
+    <div class="actions" style="margin:16px 0" id="edActions"></div>
+    <div id="docExtras"></div>`;
+  // Eventos: cualquier cambio recalcula y guarda en memoria
+  $$('#edParty input').forEach(inp => inp.oninput = () => {
+    d.party[inp.name] = inp.value;
+    if (inp.name === 'name') { const c = contacts.find(x => x.name === inp.value); if (c) { Object.assign(d.party, { nif: c.nif, address: c.address, postal_city: c.postal_city, email: c.email }); ['nif', 'address', 'postal_city', 'email'].forEach(k => { $(`#edParty [name=${k}]`).value = c[k] || ''; }); } }
+  });
+  $$('#edMeta [name]').forEach(inp => inp.oninput = inp.onchange = () => { d[inp.name] = inp.name === 'recargo' ? inp.value === '1' : inp.value; paintTotals(); });
+  $$('#edLines tbody tr').forEach(tr => $$('[name]', tr).forEach(inp => inp.oninput = inp.onchange = () => {
+    const l = d.lines[tr.dataset.i];
+    l[inp.name] = inp.name === 'desc' ? inp.value : Number(String(inp.value).replace(',', '.')) || 0;
+    if (inp.name === 'desc') { const p = products.find(x => x.name === inp.value); if (p) { l.price = p.price; l.iva = p.iva; $('[name=price]', tr).value = p.price; $('[name=iva]', tr).value = p.iva; } }
+    paintTotals();
+  }));
+  const notes = $('#edNotes'); if (notes) notes.oninput = () => { d.notes = notes.value; };
+  paintTotals();
+  paintEditorActions();
+  if (sale.id) loadDocExtras({ id: sale.id });
+}
+function paintTotals() {
+  const d = sale.draft, t = saleTotals(d);
+  $$('#edLines tbody tr').forEach(tr => { const l = d.lines[tr.dataset.i]; $('[data-imp]', tr).textContent = money(rr((+l.qty || 0) * (+l.price || 0) * (1 - (+l.dto || 0) / 100))); });
+  const row = (a, b, big) => `<div style="display:flex;justify-content:space-between;padding:4px 0;${big ? 'font-size:18px;font-weight:800;border-top:2px solid var(--text);margin-top:6px;padding-top:8px' : ''}"><span>${a}</span><span style="font-variant-numeric:tabular-nums">${b}</span></div>`;
+  $('#edTotals').innerHTML = row('Base imponible', money(t.base)) + t.ivas.map(g => row(`IVA ${g.rate} %${t.ivas.length > 1 ? ' s/ ' + money(g.base) : ''}`, money(g.cuota)) + (g.re ? row(`Recargo equiv. ${RE[g.rate]} %`, money(g.re)) : '')).join('')
+    + (t.ret ? row(`Retención IRPF ${d.irpf} %`, '−' + money(t.ret)) : '') + row('Total', money(t.total), true);
+}
+function addLine() { sale.draft.lines.push({ desc: '', qty: 1, price: 0, dto: 0, iva: sale.draft.lines.at(-1)?.iva ?? 21 }); renderEditor(); }
+function delLine(i) { sale.draft.lines.splice(i, 1); if (!sale.draft.lines.length) sale.draft.lines.push({ desc: '', qty: 1, price: 0, dto: 0, iva: 21 }); renderEditor(); }
+function paintEditorActions() {
+  const type = sale.doc_type, st = sale.doc_state || 'borrador', issued = st !== 'borrador', isInv = type === 'factura' || type === 'rectificativa';
+  const b = (label, ic, fn, cls = '') => `<button class="btn ${cls}" onclick="${fn}">${icon(ic)}${label}</button>`;
+  let h = '';
+  if (!issued) h += b('Guardar borrador', 'save', 'saveSale(false)') + b(isInv ? 'Emitir factura' : 'Emitir', 'send', 'saveSale(true)', 'primary');
+  else if (!isInv) h += b('Guardar cambios', 'save', 'saveSale(false)', 'primary');
+  if (sale.id) h += `<a class="btn" href="${fileUrl(sale.id)}" target="_blank">${icon('file-output')}Ver PDF</a>`;
+  if (sale.id && issued) {
+    if (type === 'presupuesto') h += b('Convertir en pedido', 'arrow-right', "convertSale('pedido')") + b('Convertir en factura', 'receipt-text', "convertSale('factura')");
+    if (type === 'pedido' && sale.draft.role !== 'proveedor') h += b('Crear albarán', 'truck', "convertSale('albaran')") + b('Facturar', 'receipt-text', "convertSale('factura')");
+    if (type === 'albaran') h += b('Facturar', 'receipt-text', "convertSale('factura')");
+    if (type === 'factura') h += b('Rectificar', 'file-minus', 'rectifySale()');
+    if (isInv) h += `<button class="btn ${sale.paid ? '' : 'soft'}" onclick="togglePaid(${sale.id}, ${sale.paid ? 0 : 1}, () => openEditor(${sale.id}))">${icon(sale.paid ? 'clock' : 'circle-check')}${sale.paid ? 'Marcar pendiente' : (sale.direction === 'emitido' ? 'Marcar cobrada' : 'Marcar pagada')}</button>`;
+    const states = (saleMeta.states[type] || []).filter(x => x !== st);
+    if (!isInv && states.length) h += `<div class="field" style="min-width:170px"><select onchange="setSaleState(this.value)"><option value="">Cambiar estado…</option>${states.map(x => `<option value="${x}">${STATE_LABEL[x]?.[1] || x}</option>`).join('')}</select></div>`;
+  }
+  if (sale.id) h += b('Duplicar', 'copy', 'duplicateSale()');
+  if (sale.id && !(issued && isInv)) h += b('Eliminar', 'trash', 'deleteSale()', 'danger');
+  $('#edActions').innerHTML = h;
+}
+async function saveSale(emit) {
+  if (emit && (sale.doc_type === 'factura' || sale.doc_type === 'rectificativa') && !confirm('Al emitir la factura se le asigna el siguiente número de la serie y ya no se podrá modificar ni borrar. ¿Emitir?')) return;
+  try {
+    const body = { type: sale.doc_type, draft: sale.draft, emit };
+    sale = sale.id ? await capi('/sales/' + sale.id, { method: 'PUT', body }) : await capi('/sales', { method: 'POST', body });
+    toast(emit ? `${SALE_LABEL[sale.doc_type]} ${sale.numero} emitido` : 'Guardado');
+    contacts = await capi('/contacts');
+    renderEditor();
+  } catch (e) { toast(e.message, true); }
+}
+async function convertSale(to) {
+  try { sale = await capi(`/sales/${sale.id}/convert`, { method: 'POST', body: { to } }); toast(`${SALE_LABEL[to]} creado en borrador`); renderEditor(); } catch (e) { toast(e.message, true); }
+}
+async function rectifySale() {
+  const motivo = prompt('Motivo de la rectificación (p. ej. devolución, error en el precio, anulación):', 'Anulación de la factura');
+  if (motivo === null) return;
+  try { sale = await capi(`/sales/${sale.id}/rectify`, { method: 'POST', body: { motivo } }); toast('Rectificativa creada en borrador: ajusta las líneas y emítela'); renderEditor(); } catch (e) { toast(e.message, true); }
+}
+async function duplicateSale() { try { sale = await capi(`/sales/${sale.id}/duplicate`, { method: 'POST' }); toast('Copia creada en borrador'); renderEditor(); } catch (e) { toast(e.message, true); } }
+async function setSaleState(st) { if (!st) return; try { sale = await capi(`/sales/${sale.id}/state`, { method: 'POST', body: { state: st } }); toast('Estado actualizado'); renderEditor(); } catch (e) { toast(e.message, true); } }
+async function deleteSale() {
+  if (!confirm('¿Eliminar este documento?')) return;
+  try { await capi('/documents/' + sale.id, { method: 'DELETE' }); toast('Documento eliminado'); go('documentos'); } catch (e) { toast(e.message, true); }
+}
+async function invoiceAlbaranes() {
+  const docs = (await capi('/documents?type=albaran&dir=emitido')).filter(d => d.source === 'creado' && d.doc_state !== 'borrador' && d.doc_state !== 'facturado');
+  if (!docs.length) return toast('No hay albaranes emitidos pendientes de facturar');
+  showBox(`<div class="modal-head"><h3>Facturar albaranes</h3><button type="button" class="icon-btn" data-close>${icon('x')}</button></div>
+    <p class="muted">Selecciona albaranes del mismo cliente para agruparlos en una factura.</p>
+    <div class="list">${docs.map(d => { const f = d.extracted.fields; return `<label class="item" style="cursor:pointer"><input type="checkbox" value="${d.id}"><div class="item-body"><b>${esc(f.numero)} · ${esc(f.proveedor)}</b><p>${esc(f.fecha)} · ${money(f.total)}</p></div></label>`; }).join('')}</div>
+    <div class="actions" style="margin-top:14px"><button class="btn primary" id="doInv">${icon('receipt-text')}Crear factura</button></div>`);
+  $('#doInv').onclick = async () => {
+    const ids = $$('#modal input:checked').map(x => Number(x.value));
+    if (!ids.length) return toast('Selecciona al menos un albarán', true);
+    try { const r = await capi('/sales/invoice-from', { method: 'POST', body: { ids } }); closeModal(); await loadSaleRefs(); sale = r; go('editor'); renderEditor(); toast('Factura creada en borrador'); } catch (e) { toast(e.message, true); }
+  };
+}
+
+// ---------------------------------------------------------------- clientes y proveedores
+let ctKind = '';
+async function loadContacts() {
+  $$('#ctTabs button').forEach(b => b.onclick = () => { ctKind = b.dataset.kind; $$('#ctTabs button').forEach(x => x.classList.toggle('active', x === b)); loadContacts(); });
+  try {
+    contacts = await capi('/contacts');
+    const rows = contacts.filter(c => !ctKind || c.kind === ctKind || c.kind === 'ambos');
+    const kindB = k => k === 'cliente' ? '<span class="badge teal">Cliente</span>' : k === 'proveedor' ? '<span class="badge gray">Proveedor</span>' : '<span class="badge green">Cliente y proveedor</span>';
+    $('#ctTable').innerHTML = rows.length ? `<table class="table"><thead><tr><th>Nombre</th><th>NIF</th><th>Tipo</th><th>Contacto</th><th class="num">Ventas</th><th class="num">Compras</th><th class="num">Pendiente</th><th></th></tr></thead><tbody>
+      ${rows.map(c => `<tr class="clickable" onclick="editContact(${c.id})"><td><b>${esc(c.name)}</b><div class="muted">${esc([c.address, c.postal_city].filter(Boolean).join(', '))}</div></td><td>${esc(c.nif || '—')}</td><td>${kindB(c.kind)}</td>
+        <td class="muted">${esc([c.email, c.phone].filter(Boolean).join(' · ') || '—')}</td><td class="num">${c.ventas ? money(c.ventas) : '—'}</td><td class="num">${c.compras ? money(c.compras) : '—'}</td><td class="num">${c.pendiente ? money(c.pendiente) : '—'}</td>
+        <td>${c.kind !== 'proveedor' ? `<button class="btn sm soft" onclick="event.stopPropagation();quickSale(${c.id})">${icon('file-plus')}Factura</button>` : ''}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="empty">${icon('contact')}<div>Todavía no hay contactos.</div><p>Se crean al emitir documentos, o impórtalos de los documentos que ya has subido.</p></div>`;
+  } catch (e) { toast(e.message, true); }
+}
+function editContact(id) {
+  const c = contacts.find(x => x.id === id) || { kind: 'cliente' };
+  openModal(id ? 'Editar contacto' : 'Nuevo cliente o proveedor', [
+    field('name', 'Nombre o razón social', { value: c.name, required: true, full: true }), field('nif', 'NIF / CIF', { value: c.nif }),
+    field('kind', 'Tipo', { value: c.kind, options: [['cliente', 'Cliente'], ['proveedor', 'Proveedor'], ['ambos', 'Cliente y proveedor']] }),
+    field('address', 'Dirección', { value: c.address, full: true }), field('postal_city', 'Código postal y localidad', { value: c.postal_city, full: true }),
+    field('email', 'Email', { value: c.email, type: 'email' }), field('phone', 'Teléfono', { value: c.phone }), field('notes', 'Notas', { value: c.notes, full: true }),
+    id ? `<div class="field full"><button type="button" class="btn danger" onclick="deleteContact(${id})">${icon('trash')}Eliminar contacto</button></div>` : '',
+  ].join(''), async data => { await capi(id ? '/contacts/' + id : '/contacts', { method: id ? 'PATCH' : 'POST', body: data }); toast('Contacto guardado'); loadContacts(); });
+}
+async function deleteContact(id) { if (!confirm('¿Eliminar este contacto? Sus documentos no se borran.')) return; try { await capi('/contacts/' + id, { method: 'DELETE' }); closeModal(); loadContacts(); } catch (e) { toast(e.message, true); } }
+async function importContacts() { try { const r = await capi('/contacts/import', { method: 'POST' }); toast(`${r.added} contactos añadidos`); loadContacts(); } catch (e) { toast(e.message, true); } }
+async function quickSale(id) { const c = contacts.find(x => x.id === id); await newSale('factura'); Object.assign(sale.draft.party, { name: c.name, nif: c.nif, address: c.address, postal_city: c.postal_city, email: c.email }); renderEditor(); }
+
+// ---------------------------------------------------------------- artículos
+async function loadProducts() {
+  try {
+    products = await capi('/products');
+    $('#prTable').innerHTML = products.length ? `<table class="table"><thead><tr><th>Artículo o servicio</th><th>Referencia</th><th class="num">Precio</th><th>IVA</th><th>Unidad</th></tr></thead><tbody>
+      ${products.map(p => `<tr class="clickable" onclick="editProduct(${p.id})"><td><b>${esc(p.name)}</b></td><td>${esc(p.ref || '—')}</td><td class="num">${money(p.price)}</td><td>${p.iva} %</td><td>${esc(p.unit || '—')}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="empty">${icon('package')}<div>Añade los productos o servicios que vendes habitualmente.</div></div>`;
+  } catch (e) { toast(e.message, true); }
+}
+function editProduct(id) {
+  const p = products.find(x => x.id === id) || { iva: 21 };
+  openModal(id ? 'Editar artículo' : 'Nuevo artículo o servicio', [
+    field('name', 'Nombre', { value: p.name, required: true, full: true }), field('ref', 'Referencia', { value: p.ref }), field('unit', 'Unidad (ud, h, kg…)', { value: p.unit }),
+    field('price', 'Precio sin IVA (€)', { value: p.price ?? '' }), field('iva', 'IVA', { value: p.iva, options: [[21, '21 %'], [10, '10 %'], [5, '5 %'], [4, '4 %'], [0, '0 %']] }),
+    id ? `<div class="field full"><button type="button" class="btn danger" onclick="deleteProduct(${id})">${icon('trash')}Eliminar</button></div>` : '',
+  ].join(''), async data => { await capi(id ? '/products/' + id : '/products', { method: id ? 'PATCH' : 'POST', body: data }); toast('Artículo guardado'); loadProducts(); });
+}
+async function deleteProduct(id) { if (!confirm('¿Eliminar este artículo?')) return; try { await capi('/products/' + id, { method: 'DELETE' }); closeModal(); loadProducts(); } catch (e) { toast(e.message, true); } }
+
+// ---------------------------------------------------------------- contabilidad general
+let gl = null, glView = 'pyg';
+async function loadLedger() {
+  if (!$('#glYear').options.length) {
+    fillYears('#glYear', []); ['#glYear', '#glValidated'].forEach(x => $(x).onchange = loadLedger);
+    $$('#glTabs button').forEach(b => b.onclick = () => { glView = b.dataset.view; $$('#glTabs button').forEach(x => x.classList.toggle('active', x === b)); renderLedger(); });
+  }
+  $('#glBody').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  try {
+    gl = await capi(`/ledger?year=${$('#glYear').value}${$('#glValidated').checked ? '&validated=1' : ''}`);
+    fillYears('#glYear', gl.years, String(gl.year));
+    const notes = [];
+    if (gl.balance.tesoreriaNegativa) notes.push('El banco sale en negativo: indica los <b>saldos iniciales</b> (dinero en el banco, capital…) del primer año que registras en Gesty.');
+    if (!gl.totals.cuadra) notes.push('El diario no cuadra: revisa los documentos incompletos.');
+    if (!gl.yearEnded) notes.push(`Ejercicio ${gl.year} en curso: la amortización se calcula hasta hoy y el resultado es provisional.`);
+    $('#glNotice').innerHTML = notes.length ? `<div class="notice">${icon('info')}<div>${notes.join('<br>')}</div></div>` : '';
+    renderLedger();
+  } catch (e) { toast(e.message, true); }
+}
+const amt = v => (v ? money(v) : '');
+function renderLedger() {
+  const g = gl, el = $('#glBody');
+  if (!g) return;
+  const statement = (rows, head) => `<table class="table">${head ? `<thead><tr><th></th><th>${head}</th><th class="num">${g.year}</th></tr></thead>` : ''}<tbody>${rows.map(r => `<tr style="${r[3] ? 'font-weight:800;background:var(--panel-2)' : ''}"><td class="muted" style="width:70px">${esc(r[0])}</td><td>${esc(r[1])}</td><td class="num">${money(r[2])}</td></tr>`).join('')}</tbody></table>`;
+  if (glView === 'pyg') el.innerHTML = statement(g.pyg, 'Cuenta de pérdidas y ganancias') + `<p class="muted" style="margin:10px 0 0">Modelo abreviado de PYMES. El impuesto sobre beneficios es una estimación.</p>`;
+  else if (glView === 'balance') el.innerHTML = `<div class="grid halves"><div>${statement(g.balance.activo, 'Activo')}</div><div>${statement(g.balance.pasivo, 'Patrimonio neto y pasivo')}</div></div>
+    <p class="muted" style="margin:10px 0 0">${g.balance.cuadra ? `${icon('circle-check')} El balance cuadra.` : 'El balance no cuadra: revisa los saldos iniciales.'} Situación a ${g.yearEnded ? '31/12/' + g.year : 'hoy'}.</p>`;
+  else if (glView === 'diario') el.innerHTML = `<div class="table-wrap"><table class="table"><thead><tr><th>Nº</th><th>Fecha</th><th>Cuenta</th><th>Concepto</th><th class="num">Debe</th><th class="num">Haber</th></tr></thead><tbody>
+    ${g.journal.map(e => e.lines.map((l, i) => `<tr ${e.ref?.doc ? `class="clickable" onclick="openDoc(${e.ref.doc})"` : ''} style="${i === 0 ? 'border-top:2px solid var(--line)' : ''}"><td>${i === 0 ? e.n : ''}</td><td style="white-space:nowrap">${i === 0 ? isoToEs(e.date) : ''}</td><td><b>${l.a}</b> <span class="muted">${esc(l.name)}</span></td><td class="muted">${i === 0 ? esc(e.concepto) : ''}</td><td class="num">${amt(l.d)}</td><td class="num">${amt(l.h)}</td></tr>`).join('')).join('')}
+    <tr><td colspan="4"><b>Sumas (${g.journal.length} asientos)</b></td><td class="num"><b>${money(g.totals.debe)}</b></td><td class="num"><b>${money(g.totals.haber)}</b></td></tr></tbody></table></div>`;
+  else if (glView === 'mayor') el.innerHTML = g.ledger.map(m => `<details class="card" style="box-shadow:none;margin-bottom:8px;padding:12px"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:10px"><span><b>${m.account}</b> ${esc(m.name)}</span><span style="font-variant-numeric:tabular-nums">Saldo <b>${money(Math.abs(m.saldo))}</b> ${m.saldo > 0 ? 'deudor' : m.saldo < 0 ? 'acreedor' : ''}</span></summary>
+    <div class="table-wrap"><table class="table" style="margin-top:8px"><thead><tr><th>Asiento</th><th>Fecha</th><th>Concepto</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo</th></tr></thead><tbody>
+    ${m.moves.map(mv => `<tr><td>${mv.n}</td><td>${isoToEs(mv.date)}</td><td class="muted">${esc(mv.concepto)}</td><td class="num">${amt(mv.d)}</td><td class="num">${amt(mv.h)}</td><td class="num">${money(mv.saldo)}</td></tr>`).join('')}</tbody></table></div></details>`).join('') || '<div class="empty">Sin movimientos</div>';
+  else el.innerHTML = `<div class="table-wrap"><table class="table"><thead><tr><th>Cuenta</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo deudor</th><th class="num">Saldo acreedor</th></tr></thead><tbody>
+    ${g.trial.map(m => `<tr><td><b>${m.account}</b> <span class="muted">${esc(m.name)}</span></td><td class="num">${money(m.d)}</td><td class="num">${money(m.h)}</td><td class="num">${amt(m.deudor)}</td><td class="num">${amt(m.acreedor)}</td></tr>`).join('')}
+    <tr><td><b>Total</b></td><td class="num"><b>${money(g.totals.debe)}</b></td><td class="num"><b>${money(g.totals.haber)}</b></td><td class="num"><b>${money(g.trial.reduce((a, m) => a + m.deudor, 0))}</b></td><td class="num"><b>${money(g.trial.reduce((a, m) => a + m.acreedor, 0))}</b></td></tr></tbody></table></div>`;
+}
+function exportLedger() {
+  const q = new URLSearchParams({ year: $('#glYear').value, book: glView === 'mayor' ? 'mayor' : glView === 'sumas' ? 'sumas' : 'diario' });
+  if ($('#glValidated').checked) q.set('validated', '1');
+  if (CID) q.set('cid', CID);
+  location.href = '/api/c/ledger.csv?' + q;
+}
+function printLedger() {
+  const w = open('', '_blank');
+  if (!w) return toast('Permite las ventanas emergentes para imprimir', true);
+  const titles = { pyg: 'Cuenta de pérdidas y ganancias', balance: 'Balance de situación', diario: 'Libro diario', mayor: 'Libro mayor', sumas: 'Balance de sumas y saldos' };
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>${titles[glView]} ${gl.year}</title><style>body{font:12px/1.45 Arial,sans-serif;margin:28px;color:#111}table{border-collapse:collapse;width:100%;margin-bottom:14px}td,th{border-bottom:1px solid #ddd;padding:5px 7px;text-align:left}.num{text-align:right}.muted{color:#666}h1{font-size:18px}details{margin-bottom:10px}summary{font-weight:bold}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}svg{display:none}</style>
+    <h1>${titles[glView]} · ejercicio ${gl.year}</h1><p class="muted">${esc($('#meName').textContent)} · generado por Gesty el ${new Date().toLocaleDateString('es-ES')}</p>${$('#glBody').innerHTML.replace(/<details/g, '<details open')}<script>print()<\/script>`);
+  w.document.close();
+}
+function editOpening() {
+  const year = Number($('#glYear').value);
+  const cur = Object.fromEntries((gl?.openings || []).map(o => [o.account, o.amount]));
+  const f = (acc, label, sign = 1) => field('a' + acc, label, { value: cur[acc] ? Math.abs(cur[acc]) : '' });
+  openModal(`Saldos iniciales a 1 de enero de ${year}`, `<p class="muted full" style="grid-column:1/-1;margin:0">Lo que tenía la empresa al empezar a registrar en Gesty. La diferencia se lleva al patrimonio (cuenta 120).</p>
+    ${f(572, 'Dinero en el banco (€)')}${f(100, 'Capital social (€)')}${f(213, 'Maquinaria y equipos (valor neto, €)')}${f(430, 'Clientes pendientes de cobro (€)')}${f(400, 'Proveedores pendientes de pago (€)')}${f(4750, 'IVA pendiente de pagar (€)')}`,
+    async data => {
+      const n = v => Number(String(v || 0).replace(',', '.')) || 0;
+      const items = [['572', n(data.a572)], ['100', -n(data.a100)], ['213', n(data.a213)], ['430', n(data.a430)], ['400', -n(data.a400)], ['4750', -n(data.a4750)]].map(([account, amount]) => ({ account, amount }));
+      await capi('/ledger/opening', { method: 'PUT', body: { year, items } }); toast('Saldos iniciales guardados'); loadLedger();
+    });
 }
 
 // ---------------------------------------------------------------- inicio

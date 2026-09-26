@@ -151,3 +151,10 @@ img.preview{object-fit:contain}
 .pay-btn{border:1px solid transparent;cursor:pointer}
 tr.sel td{background:var(--primary-soft)}
 .tabs.sub{margin-top:-4px}
+/* Editor de documentos */
+.table input.cell,.table select.cell{width:100%;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:7px 8px;font:inherit;outline:none}
+.table input.cell:focus,.table select.cell:focus{border-color:var(--primary-strong);box-shadow:0 0 0 3px var(--primary-soft)}
+.table input.cell.num{text-align:right;min-width:80px}
+.table input.cell:disabled,.table select.cell:disabled,.field input:disabled,.field select:disabled,.field textarea:disabled{background:var(--panel-2);color:var(--text);opacity:1}
+#edLines td{padding:6px 6px}
+details summary::-webkit-details-marker{display:none}

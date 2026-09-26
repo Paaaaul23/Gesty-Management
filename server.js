@@ -9,6 +9,7 @@ const { analyze } = require('./extract');
 const ai = require('./ai');
 const acc = require('./accounting');
 const fiscal = require('./fiscal');
+const sales = require('./sales');
 
 const PORT = Number(process.env.PORT) || 3000;
 const SESSION_DAYS = 7;
@@ -236,7 +237,7 @@ c.get('/summary', (req, res) => {
     locales: one('SELECT COUNT(*) n FROM locales WHERE client_id = ?').n,
     employees: one('SELECT COUNT(*) n FROM employees WHERE client_id = ? AND active = 1').n,
     documents: one('SELECT COUNT(*) n FROM documents WHERE client_id = ?').n,
-    pending: one("SELECT COUNT(*) n FROM documents WHERE client_id = ? AND status = 'pendiente'").n,
+    pending: one("SELECT COUNT(*) n FROM documents WHERE client_id = ? AND status = 'pendiente' AND COALESCE(source, '') <> 'creado'").n,
     byType: db.prepare("SELECT COALESCE(json_extract(corrected_json, '$.doc_type'), doc_type, 'otro') t, COUNT(*) n FROM documents WHERE client_id = ? GROUP BY t").all(id),
     byDirection: db.prepare("SELECT direction d, COUNT(*) n FROM documents WHERE client_id = ? GROUP BY direction").all(id),
     finance: (() => {
@@ -264,8 +265,9 @@ c.get('/company', (req, res) => res.json(req.client));
 c.patch('/company', (req, res) => {
   const b = req.body || {};
   const name = clean(b.name) || req.client.name;
-  db.prepare('UPDATE clients SET name=?, nif=?, email=?, phone=? WHERE id=?')
-    .run(name, clean(b.nif), clean(b.email), clean(b.phone), req.client.id);
+  const pick = k => (k in b ? clean(b[k]) : req.client[k]);
+  db.prepare('UPDATE clients SET name=?, nif=?, email=?, phone=?, address=?, postal_city=?, iban=?, doc_footer=? WHERE id=?')
+    .run(name, clean(b.nif)?.toUpperCase().replace(/[\s.\-]/g, '') || null, clean(b.email), clean(b.phone), pick('address'), pick('postal_city'), pick('iban'), pick('doc_footer'), req.client.id);
   audit(req, 'Datos de la empresa actualizados', 'empresa', req.client.id);
   res.json({ ok: true });
 });
@@ -342,8 +344,8 @@ function categoryFor(direction, extracted) {
 }
 
 function docOut(d, full) {
-  const out = { ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null') };
-  delete out.extracted_json; delete out.corrected_json; delete out.stored_name;
+  const out = { ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null'), draft: JSON.parse(d.draft_json || 'null') };
+  delete out.extracted_json; delete out.corrected_json; delete out.stored_name; delete out.draft_json;
   if (!full) { delete out.raw_text; if (out.extracted) { delete out.extracted.lines; delete out.extracted.all_nifs; } }
   return out;
 }
@@ -432,6 +434,7 @@ const NUM_KEYS = new Set(['base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'to
 
 c.put('/documents/:id/validate', (req, res) => {
   const d = getDoc(req);
+  if (d.source === 'creado') return res.status(400).json({ error: 'Este documento se creó en Gesty: modifícalo desde su editor' });
   const b = req.body || {};
   const fields = {};
   for (const k of FIELD_KEYS) {
@@ -481,7 +484,7 @@ c.patch('/documents/:id', (req, res) => {
 function accountingEntries(client, onlyValidated) {
   const clientId = client.id;
   const ownNif = client.nif ? client.nif.toUpperCase().replace(/[\s.\-]/g, '').replace(/^ES/, '') : null;
-  const docs = db.prepare(`SELECT * FROM documents WHERE client_id = ?${onlyValidated ? " AND status = 'validado'" : ''}`).all(clientId)
+  const docs = db.prepare(`SELECT * FROM documents WHERE client_id = ? AND COALESCE(doc_state, '') <> 'borrador'${onlyValidated ? " AND status = 'validado'" : ''}`).all(clientId)
     .map(d => acc.docToEntry({ ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null') }, { ownNif }))
     .filter(Boolean);
   const manual = db.prepare('SELECT * FROM entries WHERE client_id = ?').all(clientId).map(acc.manualToEntry);
@@ -550,6 +553,8 @@ c.delete('/entries/:id', (req, res) => {
 
 c.delete('/documents/:id', (req, res) => {
   const d = getDoc(req);
+  if (d.source === 'creado' && ['factura', 'rectificativa'].includes(d.doc_type) && d.doc_state !== 'borrador')
+    return res.status(400).json({ error: 'Una factura emitida no se puede borrar (numeración correlativa). Emite una factura rectificativa.' });
   db.prepare('DELETE FROM documents WHERE id = ?').run(d.id);
   fs.rm(path.join(UPLOAD_DIR, d.stored_name), { force: true }, () => {});
   audit(req, 'Documento eliminado', 'documento', d.id, d.filename);
@@ -563,7 +568,7 @@ function sameValue(k, a, b) {
   return normText(a) === normText(b);
 }
 function accuracyFor(clientId) {
-  const docs = db.prepare("SELECT id, filename, extracted_json, corrected_json FROM documents WHERE client_id = ? AND status = 'validado'").all(clientId);
+  const docs = db.prepare("SELECT id, filename, extracted_json, corrected_json FROM documents WHERE client_id = ? AND status = 'validado' AND COALESCE(source, '') <> 'creado'").all(clientId);
   const per = Object.fromEntries(['doc_type', 'direction', ...FIELD_KEYS].map(k => [k, { ok: 0, wrong: 0, missing: 0, extra: 0 }]));
   const detail = [];
   let ok = 0, total = 0;
@@ -722,6 +727,255 @@ c.get('/books', (req, res) => {
     return res.send('\ufeff' + [head.join(';'), ...lines].join('\r\n'));
   }
   res.json({ year, quarter, years: yearsOf(all), kind: req.query.kind === 'emitidas' ? 'emitidas' : 'recibidas', rows });
+});
+
+// ---------------------------------------------------------------- ventas y compras: documentos creados en Gesty
+const companyOf = cl => ({ name: cl.name, nif: cl.nif, address: cl.address, postal_city: cl.postal_city, phone: cl.phone, email: cl.email, iban: cl.iban, doc_footer: cl.doc_footer });
+const bad = msg => Object.assign(new Error(msg), { status: 400 });
+
+async function saveCreated(req, type, draftIn, { id = null, emit = false } = {}) {
+  if (!sales.TYPES[type]) throw bad('Tipo de documento no válido');
+  const prev = id ? getDoc({ ...req, params: { id } }) : null;
+  const d = sales.cleanDraft(draftIn, prev ? JSON.parse(prev.draft_json || '{}') : {});
+  if (!d.party.name) throw bad(`Indica el ${d.role === 'proveedor' ? 'proveedor' : 'cliente'}`);
+  if (!d.lines.length) throw bad('Añade al menos una línea');
+  const isInv = ['factura', 'rectificativa'].includes(type);
+  if (isInv && emit && !d.party.nif) throw bad('Para emitir una factura hace falta el NIF del cliente');
+  if (isInv && emit && !req.client.nif) throw bad('Para emitir facturas, rellena el NIF de tu empresa en Configuración');
+  const t = sales.totals(d);
+  const year = Number(d.fecha.slice(0, 4));
+  let { series = null, seq = null, doc_state = 'borrador', issued_at = null, hash = null, prev_hash = null } = prev || {};
+  const wasIssued = prev && prev.doc_state && prev.doc_state !== 'borrador';
+  if (wasIssued && isInv) throw bad('Una factura emitida no se puede modificar. Emite una factura rectificativa.');
+  if (emit && !wasIssued) {
+    const tx = sales.TYPES[type].prefix + year;
+    const last = db.prepare("SELECT seq, draft_json FROM documents WHERE client_id = ? AND series = ? AND doc_state <> 'borrador' ORDER BY seq DESC LIMIT 1").get(req.client.id, tx);
+    if (isInv && last) {
+      const lastDate = JSON.parse(last.draft_json || '{}').fecha;
+      if (lastDate && d.fecha < lastDate) throw bad(`La fecha no puede ser anterior a la de la última factura de la serie (${sales.numberFor(type, year, last.seq)}, ${sales.isoToEs(lastDate)}).`);
+    }
+    series = tx; seq = (last?.seq || 0) + 1; doc_state = 'emitido'; issued_at = new Date().toISOString();
+    if (isInv) {
+      prev_hash = db.prepare("SELECT hash FROM documents WHERE client_id = ? AND hash IS NOT NULL ORDER BY issued_at DESC, id DESC LIMIT 1").get(req.client.id)?.hash || null;
+      hash = sales.chainHash(prev_hash, req.client, sales.numberFor(type, year, seq), d.fecha, t.total);
+    }
+  }
+  const numero = seq ? sales.numberFor(type, Number(series.slice(-4)), seq) : null;
+  const company = companyOf(req.client);
+  const extracted = sales.toExtracted(type, d, t, numero);
+  const pdf = await sales.renderPdf(type, d, t, { numero, company, hash });
+  const stored = prev?.stored_name || crypto.randomUUID() + '.pdf';
+  fs.writeFileSync(path.join(UPLOAD_DIR, stored), pdf);
+  const filename = `${sales.TYPES[type].label} ${numero || 'borrador'}${d.party.name ? ' - ' + d.party.name : ''}.pdf`.replace(/[\\/:*?"<>|]/g, '-');
+  const direction = extracted.direction;
+  const category = prev?.category || categoryFor(direction, extracted);
+  const vals = [type, JSON.stringify(extracted), JSON.stringify(extracted), sales.toText(type, d, t, numero, company), JSON.stringify(d), doc_state, series, seq, issued_at, hash, prev_hash,
+    doc_state === 'borrador' ? 'pendiente' : 'validado', filename, direction, category];
+  let docId = id;
+  if (prev) {
+    db.prepare(`UPDATE documents SET doc_type=?, extracted_json=?, corrected_json=?, raw_text=?, draft_json=?, doc_state=?, series=?, seq=?, issued_at=?, hash=?, prev_hash=?, status=?, filename=?, direction=?, category=?,
+      validated_at = COALESCE(validated_at, CASE WHEN ? = 'validado' THEN datetime('now') END) WHERE id=?`).run(...vals, vals[11], id);
+  } else {
+    const r = db.prepare(`INSERT INTO documents (doc_type, extracted_json, corrected_json, raw_text, draft_json, doc_state, series, seq, issued_at, hash, prev_hash, status, filename, direction, category,
+      client_id, stored_name, mime, source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'application/pdf','creado')`).run(...vals, req.client.id, stored);
+    docId = Number(r.lastInsertRowid);
+  }
+  upsertContact(req.client.id, d.party, d.role);
+  const label = `${sales.TYPES[type].label} ${numero || '(borrador)'}`;
+  audit(req, emit && !wasIssued ? `${label} emitido` : prev ? `${label} modificado` : `${label} creado`, 'documento', docId, `${d.party.name} · ${t.total} €`);
+  autoLink(req, docId);
+  return db.prepare('SELECT * FROM documents WHERE id = ?').get(docId);
+}
+
+function upsertContact(clientId, p, role) {
+  if (!p?.name) return;
+  const kind = role === 'proveedor' ? 'proveedor' : 'cliente';
+  const ex = p.nif ? db.prepare('SELECT * FROM contacts WHERE client_id = ? AND nif = ?').get(clientId, p.nif) : db.prepare('SELECT * FROM contacts WHERE client_id = ? AND name = ? COLLATE NOCASE').get(clientId, p.name);
+  if (ex) db.prepare('UPDATE contacts SET name=?, address=COALESCE(?, address), postal_city=COALESCE(?, postal_city), email=COALESCE(?, email), kind=CASE WHEN kind <> ? THEN \'ambos\' ELSE kind END WHERE id=?')
+    .run(p.name, p.address, p.postal_city, p.email, kind, ex.id);
+  else db.prepare('INSERT INTO contacts (client_id, kind, name, nif, address, postal_city, email) VALUES (?,?,?,?,?,?,?)').run(clientId, kind, p.name, p.nif, p.address, p.postal_city, p.email);
+}
+
+function saleOut(d) {
+  const o = docOut(d, true);
+  if (o.draft) { o.totals = sales.totals(o.draft); o.numero = o.seq ? sales.numberFor(o.doc_type, Number(o.series.slice(-4)), o.seq) : null; }
+  o.links = linkedDocs(d.client_id, d.id);
+  return o;
+}
+const linkDocs = (clientId, a, b) => db.prepare('INSERT OR IGNORE INTO doc_links (client_id, from_id, to_id, auto) VALUES (?, ?, ?, 0)').run(clientId, Math.min(a, b), Math.max(a, b));
+const createdDoc = req => { const d = getDoc(req); if (d.source !== 'creado') throw bad('Este documento no se creó en Gesty'); return d; };
+
+c.get('/sales/meta', (req, res) => res.json({ types: sales.TYPES, states: sales.STATES, company: companyOf(req.client) }));
+c.post('/sales', async (req, res) => {
+  const b = req.body || {};
+  res.status(201).json(saleOut(await saveCreated(req, b.type, b.draft || {}, { emit: !!b.emit })));
+});
+c.get('/sales/:id', (req, res) => res.json(saleOut(createdDoc(req))));
+c.put('/sales/:id', async (req, res) => {
+  const d = createdDoc(req);
+  res.json(saleOut(await saveCreated(req, req.body?.type && d.doc_state === 'borrador' ? req.body.type : d.doc_type, req.body?.draft || {}, { id: d.id, emit: !!req.body?.emit })));
+});
+c.post('/sales/:id/state', (req, res) => {
+  const d = createdDoc(req);
+  const st = String(req.body?.state || '');
+  if (!sales.STATES[d.doc_type]?.includes(st) || d.doc_state === 'borrador') return res.status(400).json({ error: 'Estado no válido' });
+  db.prepare('UPDATE documents SET doc_state = ? WHERE id = ?').run(st, d.id);
+  audit(req, `Estado cambiado a "${st}"`, 'documento', d.id);
+  res.json(saleOut(getDoc(req)));
+});
+// Convertir: presupuesto → pedido → albarán → factura (copia cliente y líneas y enlaza los documentos)
+c.post('/sales/:id/convert', async (req, res) => {
+  const src = createdDoc(req);
+  const to = String(req.body?.to || '');
+  if (!['pedido', 'albaran', 'factura'].includes(to)) return res.status(400).json({ error: 'Conversión no válida' });
+  const d = JSON.parse(src.draft_json);
+  const srcNum = src.seq ? sales.numberFor(src.doc_type, Number(src.series.slice(-4)), src.seq) : null;
+  const draft = { ...d, fecha: new Date().toISOString().slice(0, 10), vencimiento: null, ref: srcNum ? `${sales.TYPES[src.doc_type].label} ${srcNum}` : d.ref, validez: null, rect: null };
+  const nd = await saveCreated(req, to, draft);
+  linkDocs(req.client.id, src.id, nd.id);
+  const mark = { presupuesto: 'aceptado', albaran: to === 'factura' ? 'facturado' : null, pedido: to === 'albaran' || to === 'factura' ? 'servido' : null }[src.doc_type];
+  if (mark && src.doc_state !== 'borrador') db.prepare('UPDATE documents SET doc_state = ? WHERE id = ?').run(mark, src.id);
+  audit(req, `Convertido en ${sales.TYPES[to].label.toLowerCase()}`, 'documento', src.id);
+  res.status(201).json(saleOut(nd));
+});
+// Una factura con varios albaranes del mismo cliente
+c.post('/sales/invoice-from', async (req, res) => {
+  const ids = (req.body?.ids || []).map(Number);
+  const docs = ids.map(id => db.prepare("SELECT * FROM documents WHERE id = ? AND client_id = ? AND source = 'creado' AND doc_type = 'albaran'").get(id, req.client.id)).filter(Boolean);
+  if (!docs.length) return res.status(400).json({ error: 'Selecciona albaranes creados en Gesty' });
+  const drafts = docs.map(x => JSON.parse(x.draft_json));
+  const party = drafts[0].party;
+  if (drafts.some(x => (x.party.nif || x.party.name) !== (party.nif || party.name))) return res.status(400).json({ error: 'Los albaranes deben ser del mismo cliente' });
+  const lines = docs.flatMap((x, i) => [{ desc: `Albarán ${sales.numberFor('albaran', Number(x.series?.slice(-4) || 0), x.seq || 0)} de ${sales.isoToEs(drafts[i].fecha)}`, qty: 0, price: 0, iva: drafts[i].lines[0]?.iva ?? 21 }, ...drafts[i].lines]);
+  const nd = await saveCreated(req, 'factura', { ...drafts[0], lines, fecha: new Date().toISOString().slice(0, 10), vencimiento: null, ref: null });
+  for (const x of docs) { linkDocs(req.client.id, x.id, nd.id); if (x.doc_state !== 'borrador') db.prepare("UPDATE documents SET doc_state = 'facturado' WHERE id = ?").run(x.id); }
+  res.status(201).json(saleOut(nd));
+});
+// Factura rectificativa por diferencias: copia las líneas en negativo
+c.post('/sales/:id/rectify', async (req, res) => {
+  const src = createdDoc(req);
+  if (src.doc_type !== 'factura' || src.doc_state === 'borrador') return res.status(400).json({ error: 'Solo se rectifican facturas emitidas' });
+  const d = JSON.parse(src.draft_json);
+  const numero = sales.numberFor('factura', Number(src.series.slice(-4)), src.seq);
+  const nd = await saveCreated(req, 'rectificativa', { ...d, fecha: new Date().toISOString().slice(0, 10), vencimiento: null, ref: null,
+    lines: d.lines.map(l => ({ ...l, qty: -l.qty })), rect: { numero, fecha: d.fecha, motivo: String(req.body?.motivo || 'Anulación de la factura') } });
+  linkDocs(req.client.id, src.id, nd.id);
+  res.status(201).json(saleOut(nd));
+});
+c.post('/sales/:id/duplicate', async (req, res) => {
+  const src = createdDoc(req);
+  const d = JSON.parse(src.draft_json);
+  res.status(201).json(saleOut(await saveCreated(req, src.doc_type === 'rectificativa' ? 'factura' : src.doc_type, { ...d, fecha: new Date().toISOString().slice(0, 10), vencimiento: null, rect: null })));
+});
+// Comprueba la cadena de huellas de las facturas emitidas
+c.get('/sales-chain', (req, res) => {
+  const rows = db.prepare("SELECT id, doc_type, series, seq, draft_json, hash, prev_hash FROM documents WHERE client_id = ? AND hash IS NOT NULL ORDER BY issued_at, id").all(req.client.id);
+  let prev = null; const broken = [];
+  for (const r of rows) {
+    const d = JSON.parse(r.draft_json), t = sales.totals(d), numero = sales.numberFor(r.doc_type, Number(r.series.slice(-4)), r.seq);
+    if (r.prev_hash !== prev || sales.chainHash(prev, req.client, numero, d.fecha, t.total) !== r.hash) broken.push(numero);
+    prev = r.hash;
+  }
+  res.json({ invoices: rows.length, ok: !broken.length, broken });
+});
+
+// Agenda de clientes y proveedores
+const contactBody = b => ({ kind: ['cliente', 'proveedor', 'ambos'].includes(b.kind) ? b.kind : 'cliente', name: clean(b.name), nif: clean(b.nif)?.toUpperCase().replace(/[\s.\-]/g, '') || null,
+  address: clean(b.address), postal_city: clean(b.postal_city), email: clean(b.email), phone: clean(b.phone), notes: clean(b.notes) });
+c.get('/contacts', (req, res) => {
+  const rows = db.prepare('SELECT * FROM contacts WHERE client_id = ? ORDER BY name COLLATE NOCASE').all(req.client.id);
+  // Volumen de operaciones con cada tercero (facturas)
+  const ents = accountingEntries(req.client, false).filter(e => e.source === 'doc');
+  res.json(rows.map(c => {
+    const mine = ents.filter(e => (c.nif && e.nif === c.nif) || (!c.nif && e.tercero && e.tercero.toLowerCase() === c.name.toLowerCase()));
+    return { ...c, ventas: Math.round(mine.filter(e => e.kind === 'ingreso').reduce((a, e) => a + (e.base || 0), 0) * 100) / 100,
+      compras: Math.round(mine.filter(e => e.kind === 'gasto').reduce((a, e) => a + (e.base || 0), 0) * 100) / 100,
+      pendiente: Math.round(mine.filter(e => !e.paid && e.total > 0).reduce((a, e) => a + e.total, 0) * 100) / 100 };
+  }));
+});
+c.post('/contacts', (req, res) => {
+  const b = contactBody(req.body || {});
+  if (!b.name) return res.status(400).json({ error: 'El nombre es obligatorio' });
+  const r = db.prepare('INSERT INTO contacts (client_id, kind, name, nif, address, postal_city, email, phone, notes) VALUES (?,?,?,?,?,?,?,?,?)').run(req.client.id, b.kind, b.name, b.nif, b.address, b.postal_city, b.email, b.phone, b.notes);
+  res.status(201).json({ id: Number(r.lastInsertRowid) });
+});
+c.patch('/contacts/:id', (req, res) => {
+  const b = contactBody(req.body || {});
+  if (!b.name) return res.status(400).json({ error: 'El nombre es obligatorio' });
+  db.prepare('UPDATE contacts SET kind=?, name=?, nif=?, address=?, postal_city=?, email=?, phone=?, notes=? WHERE id=? AND client_id=?').run(b.kind, b.name, b.nif, b.address, b.postal_city, b.email, b.phone, b.notes, Number(req.params.id), req.client.id);
+  res.json({ ok: true });
+});
+c.delete('/contacts/:id', (req, res) => { db.prepare('DELETE FROM contacts WHERE id = ? AND client_id = ?').run(Number(req.params.id), req.client.id); res.json({ ok: true }); });
+// Crea la agenda a partir de los terceros de los documentos subidos
+c.post('/contacts/import', (req, res) => {
+  let n = 0;
+  for (const d of db.prepare("SELECT direction, extracted_json, corrected_json FROM documents WHERE client_id = ?").all(req.client.id)) {
+    const f = (JSON.parse(d.corrected_json || 'null') || JSON.parse(d.extracted_json || '{}')).fields || {};
+    if (!f.proveedor) continue;
+    const before = db.prepare('SELECT COUNT(*) n FROM contacts WHERE client_id = ?').get(req.client.id).n;
+    upsertContact(req.client.id, { name: f.proveedor, nif: f.nif ? String(f.nif).toUpperCase() : null }, d.direction === 'emitido' ? 'cliente' : 'proveedor');
+    n += db.prepare('SELECT COUNT(*) n FROM contacts WHERE client_id = ?').get(req.client.id).n - before;
+  }
+  res.json({ added: n });
+});
+
+// Catálogo de artículos y servicios
+const productBody = b => ({ name: clean(b.name), ref: clean(b.ref), price: Number(String(b.price ?? 0).replace(',', '.')) || 0, iva: [0, 4, 5, 10, 21].includes(Number(b.iva)) ? Number(b.iva) : 21, unit: clean(b.unit) });
+c.get('/products', (req, res) => res.json(db.prepare('SELECT * FROM products WHERE client_id = ? ORDER BY name COLLATE NOCASE').all(req.client.id)));
+c.post('/products', (req, res) => {
+  const b = productBody(req.body || {});
+  if (!b.name) return res.status(400).json({ error: 'El nombre es obligatorio' });
+  const r = db.prepare('INSERT INTO products (client_id, name, ref, price, iva, unit) VALUES (?,?,?,?,?,?)').run(req.client.id, b.name, b.ref, b.price, b.iva, b.unit);
+  res.status(201).json({ id: Number(r.lastInsertRowid) });
+});
+c.patch('/products/:id', (req, res) => {
+  const b = productBody(req.body || {});
+  db.prepare('UPDATE products SET name=?, ref=?, price=?, iva=?, unit=? WHERE id=? AND client_id=?').run(b.name, b.ref, b.price, b.iva, b.unit, Number(req.params.id), req.client.id);
+  res.json({ ok: true });
+});
+c.delete('/products/:id', (req, res) => { db.prepare('DELETE FROM products WHERE id = ? AND client_id = ?').run(Number(req.params.id), req.client.id); res.json({ ok: true }); });
+
+// ---------------------------------------------------------------- contabilidad general (partida doble)
+const ledger = require('./ledger');
+function booksFor(req) {
+  const year = Number(req.query.year) || new Date().getFullYear();
+  const openings = db.prepare('SELECT year, account, amount FROM opening_balances WHERE client_id = ?').all(req.client.id);
+  const entries = accountingEntries(req.client, req.query.validated === '1');
+  const r = ledger.books(entries, filingsOf(req.client.id), openings, fiscal.profileOf(req.client), year);
+  return { ...r, years: [...new Set(yearsOf(entries).concat(new Date().getFullYear()))].sort((a, b) => b - a), openings: openings.filter(o => o.year === year) };
+}
+c.get('/ledger', (req, res) => res.json(booksFor(req)));
+c.get('/ledger.csv', (req, res) => {
+  const b = booksFor(req);
+  const dec = v => (v ? String(v).replace('.', ',') : '');
+  const t = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  let rows, name;
+  if (req.query.book === 'mayor') {
+    name = `libro-mayor-${b.year}.csv`;
+    rows = [['Cuenta', 'Nombre', 'Asiento', 'Fecha', 'Concepto', 'Debe', 'Haber', 'Saldo'].join(';'),
+      ...b.ledger.flatMap(m => m.moves.map(mv => [m.account, t(m.name), mv.n, mv.date.split('-').reverse().join('/'), t(mv.concepto), dec(mv.d), dec(mv.h), dec(mv.saldo)].join(';')))];
+  } else if (req.query.book === 'sumas') {
+    name = `sumas-y-saldos-${b.year}.csv`;
+    rows = [['Cuenta', 'Nombre', 'Debe', 'Haber', 'Saldo deudor', 'Saldo acreedor'].join(';'), ...b.trial.map(m => [m.account, t(m.name), dec(m.d), dec(m.h), dec(m.deudor), dec(m.acreedor)].join(';'))];
+  } else {
+    name = `libro-diario-${b.year}.csv`;
+    rows = [['Asiento', 'Fecha', 'Concepto', 'Cuenta', 'Nombre', 'Debe', 'Haber'].join(';'),
+      ...b.journal.flatMap(e => e.lines.map(l => [e.n, e.date.split('-').reverse().join('/'), t(e.concepto), l.a, t(l.name), dec(l.d), dec(l.h)].join(';')))];
+  }
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+  res.send('\ufeff' + rows.join('\r\n'));
+});
+// Saldos iniciales (al empezar a usar Gesty): banco, capital, deudas…
+c.put('/ledger/opening', (req, res) => {
+  const year = Number(req.body?.year);
+  if (!year) return res.status(400).json({ error: 'Año no válido' });
+  const items = (req.body?.items || []).filter(i => ledger.ACCOUNTS[i.account] && Number.isFinite(Number(i.amount)));
+  db.prepare('DELETE FROM opening_balances WHERE client_id = ? AND year = ?').run(req.client.id, year);
+  const ins = db.prepare('INSERT INTO opening_balances (client_id, year, account, amount) VALUES (?, ?, ?, ?)');
+  for (const i of items) if (Number(i.amount)) ins.run(req.client.id, year, String(i.account), Math.round(Number(i.amount) * 100) / 100);
+  audit(req, 'Saldos iniciales actualizados', 'empresa', req.client.id, `${year}: ${items.map(i => `${i.account} ${i.amount}`).join(', ')}`);
+  res.json({ ok: true });
 });
 
 app.use('/api/c', c);
