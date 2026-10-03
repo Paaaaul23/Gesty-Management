@@ -17,7 +17,7 @@ async function api(path, opts = {}) {
   const res = await fetch(path, init);
   if (res.status === 401 && !path.startsWith('/api/login')) { location.href = '/login'; throw new Error('Sesión caducada'); }
   const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
-  if (!res.ok) throw new Error(data?.error || `Error ${res.status}`);
+  if (!res.ok) throw Object.assign(new Error(data?.error || `Error ${res.status}`), { status: res.status, data });
   return data;
 }
 

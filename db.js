@@ -185,6 +185,9 @@ addColumn('documents', 'seq', "INTEGER");
 addColumn('documents', 'issued_at', "TEXT");
 addColumn('documents', 'hash', "TEXT");                // huella encadenada de las facturas emitidas
 addColumn('documents', 'prev_hash', "TEXT");
+// Captura inteligente: proveedor o cliente de la agenda al que pertenece y quién lo validó
+addColumn('documents', 'contact_id', "INTEGER");
+addColumn('documents', 'validated_by', "TEXT");
 db.exec("UPDATE documents SET direction = COALESCE(json_extract(extracted_json, '$.direction'), 'recibido') WHERE direction IS NULL");
 
 function getSetting(key, fallback = null) {

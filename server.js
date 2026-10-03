@@ -432,6 +432,81 @@ c.post('/documents/:id/reanalyze', async (req, res) => {
 const FIELD_KEYS = ['proveedor', 'nif', 'numero', 'fecha', 'vencimiento', 'base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total', 'forma_pago', 'iban'];
 const NUM_KEYS = new Set(['base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total']);
 
+// ---------------------------------------------------------------- terceros conocidos (agenda + historial)
+const normNif = v => { const x = String(v ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^ES(?=[A-Z0-9]{9}$)/, ''); return x || null; };
+const LEGAL_FORMS = new Set(['sl', 'slu', 'sll', 'slne', 'sa', 'sau', 'sc', 'scoop', 'cb', 'scp']);
+function normName(v) {
+  const words = String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[.,]/g, '').split(/[^a-z0-9]+/).filter(Boolean);
+  while (words.length > 1 && LEGAL_FORMS.has(words.at(-1))) words.pop();
+  return words.join('');
+}
+// Mismo NIF/CIF, o mismo nombre cuando alguno de los dos no tiene NIF (con NIF distinto no es el mismo)
+function findParty(list, nif, name) {
+  const n = normNif(nif);
+  if (n) { const byNif = list.find(p => normNif(p.nif) === n); if (byNif) return byNif; }
+  const nm = normName(name);
+  if (!nm) return null;
+  return list.find(p => normName(p.name) === nm && (!n || !normNif(p.nif))) || null;
+}
+// Proveedores y clientes ya conocidos: la agenda y los terceros de los documentos validados
+function knownParties(clientId) {
+  const out = db.prepare('SELECT id, kind, name, nif FROM contacts WHERE client_id = ? ORDER BY name COLLATE NOCASE').all(clientId)
+    .map(c => ({ contact_id: c.id, kind: c.kind, name: c.name, nif: c.nif, source: 'agenda', docs: 0 }));
+  for (const d of db.prepare("SELECT direction, contact_id, corrected_json FROM documents WHERE client_id = ? AND status = 'validado'").all(clientId)) {
+    const f = JSON.parse(d.corrected_json || '{}').fields || {};
+    if (!f.proveedor) continue;
+    let p = (d.contact_id && out.find(x => x.contact_id === d.contact_id)) || findParty(out, f.nif, f.proveedor);
+    if (!p) { p = { contact_id: null, kind: d.direction === 'emitido' ? 'cliente' : 'proveedor', name: f.proveedor, nif: normNif(f.nif), source: 'historial', docs: 0 }; out.push(p); }
+    p.docs++;
+  }
+  return out;
+}
+c.get('/parties', (req, res) => res.json(knownParties(req.client.id)));
+
+const FIELD_NAMES = { proveedor: 'Proveedor / cliente', nif: 'NIF / CIF', numero: 'Número', fecha: 'Fecha', vencimiento: 'Vencimiento', base: 'Base imponible', iva_tipo: 'Tipo IVA %', iva: 'Cuota IVA', recargo: 'Recargo de equivalencia', retencion: 'Retención IRPF', total: 'Total', forma_pago: 'Forma de pago', iban: 'IBAN' };
+
+// Registro en texto de cada validación, guardado junto al archivo original
+const recordPath = d => path.join(UPLOAD_DIR, d.stored_name + '.registro.txt');
+function writeRecord(req, d, { changed, contact, newContact }) {
+  const co = JSON.parse(d.corrected_json || '{}'), ex = JSON.parse(d.extracted_json || '{}');
+  const f = co.fields || {};
+  const local = d.local_id ? db.prepare('SELECT name FROM locales WHERE id = ?').get(d.local_id)?.name : null;
+  const party = d.direction === 'emitido' ? 'Cliente' : 'Proveedor';
+  const txt = [
+    '='.repeat(72),
+    `REGISTRO DE VALIDACIÓN · Gesty Management`,
+    '='.repeat(72),
+    `Empresa:            ${req.client.name}${req.client.nif ? ' (' + req.client.nif + ')' : ''}`,
+    `Documento interno:  ${d.id}`,
+    `Archivo original:   ${d.filename} (guardado como ${d.stored_name})`,
+    `Subido el:          ${d.created_at} UTC`,
+    `Validado por:       ${d.validated_by}`,
+    `Validado el:        ${d.validated_at} UTC`,
+    `Tipo:               ${co.doc_type || d.doc_type || 'sin clasificar'} ${d.direction}`,
+    `${party}:${' '.repeat(19 - party.length)}${f.proveedor || '—'}${contact ? ` · ficha nº ${contact.id} de la agenda${newContact ? ' (creada al validar)' : ' (existente)'}` : ''}`,
+    `Categoría:          ${acc.CATEGORY_LABEL[d.category] || d.category || '—'}`,
+    `Pago:               ${d.paid ? (d.direction === 'emitido' ? 'cobrado' : 'pagado') : 'pendiente'}`,
+    `Local:              ${local || 'sin asignar'}`,
+    '',
+    'DATOS VALIDADOS',
+    ...FIELD_KEYS.map(k => `  ${(FIELD_NAMES[k] + ':').padEnd(26)}${f[k] ?? '—'}`),
+    ...(co.note ? ['', `Nota: ${co.note}`] : []),
+    '',
+    'CORRECCIONES SOBRE LA LECTURA AUTOMÁTICA',
+    ...(changed.length ? changed.map(x => '  ' + x) : ['  Ninguna: todos los campos leídos eran correctos']),
+    '',
+    'COMPROBACIONES AUTOMÁTICAS',
+    ...((ex.checks || []).length ? ex.checks.map(x => `  [${x.warn ? '!' : x.ok ? 'OK' : 'X'}] ${x.msg}`) : ['  —']),
+    '',
+    '-'.repeat(72),
+    'TEXTO LEÍDO DEL DOCUMENTO',
+    '-'.repeat(72),
+    d.raw_text || '(sin texto)',
+    '', '',
+  ].join('\r\n');
+  fs.appendFileSync(recordPath(d), (fs.existsSync(recordPath(d)) ? '' : '﻿') + txt);
+}
+
 c.put('/documents/:id/validate', (req, res) => {
   const d = getDoc(req);
   if (d.source === 'creado') return res.status(400).json({ error: 'Este documento se creó en Gesty: modifícalo desde su editor' });
@@ -445,17 +520,61 @@ c.put('/documents/:id/validate', (req, res) => {
     } else fields[k] = clean(v);
   }
   const direction = ['recibido', 'emitido'].includes(b.direction) ? b.direction : d.direction;
+  const role = direction === 'emitido' ? 'cliente' : 'proveedor';
+
+  // Proveedor / cliente: se guarda contra el de la agenda o el historial; uno nuevo solo con confirmación
+  let contact = null, newContact = false;
+  if (fields.proveedor) {
+    const want = b.party || {};
+    if (want.contact_id) {
+      contact = db.prepare('SELECT * FROM contacts WHERE id = ? AND client_id = ?').get(Number(want.contact_id), req.client.id);
+      if (!contact) return res.status(400).json({ error: `El ${role} elegido no existe` });
+    } else {
+      const known = findParty(knownParties(req.client.id), fields.nif, fields.proveedor);
+      if (known?.contact_id) contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(known.contact_id);
+      else if (!known && !want.create)
+        return res.status(409).json({ error: `${fields.proveedor} no está en tu historial: confirma que quieres crear un ${role} nuevo`, needs_party_confirmation: true, party: { name: fields.proveedor, nif: fields.nif, role } });
+      if (!contact) {
+        // Nuevo (confirmado) o conocido solo por documentos anteriores: se da de alta en la agenda
+        const src = known || { name: fields.proveedor, nif: fields.nif };
+        const r = db.prepare('INSERT INTO contacts (client_id, kind, name, nif) VALUES (?, ?, ?, ?)').run(req.client.id, role, src.name, normNif(src.nif) || normNif(fields.nif));
+        contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(Number(r.lastInsertRowid));
+        newContact = !known;
+        audit(req, newContact ? `${role === 'cliente' ? 'Cliente' : 'Proveedor'} nuevo creado al validar` : `${role === 'cliente' ? 'Cliente' : 'Proveedor'} del historial añadido a la agenda`, 'contacto', contact.id, `${contact.name}${contact.nif ? ' · ' + contact.nif : ''}`);
+      }
+    }
+    // Completa la ficha (NIF que faltaba, cliente y proveedor a la vez)
+    const nif = contact.nif || normNif(fields.nif);
+    const kind = contact.kind === role || contact.kind === 'ambos' ? contact.kind : 'ambos';
+    if (nif !== contact.nif || kind !== contact.kind) { db.prepare('UPDATE contacts SET nif = ?, kind = ? WHERE id = ?').run(nif, kind, contact.id); Object.assign(contact, { nif, kind }); }
+    fields.proveedor = contact.name;
+    fields.nif = contact.nif || fields.nif;
+  }
+
   const corrected = { doc_type: clean(b.doc_type) || d.doc_type, direction, fields, note: clean(b.note) };
   const kind = direction === 'emitido' ? 'ingreso' : 'gasto';
   const category = acc.isCategory(kind, b.category) ? b.category : (acc.isCategory(kind, d.category) ? d.category : categoryFor(direction, { ...JSON.parse(d.extracted_json || '{}'), fields }));
   const paid = 'paid' in b ? (b.paid ? 1 : 0) : d.paid;
-  db.prepare(`UPDATE documents SET corrected_json=?, status='validado', validated_at=datetime('now'), local_id=?, direction=?, category=?, paid=?,
+  const who = req.user.role === 'admin' ? `${req.user.name} (administrador)` : req.user.name;
+  db.prepare(`UPDATE documents SET corrected_json=?, status='validado', validated_at=datetime('now'), validated_by=?, contact_id=?, local_id=?, direction=?, category=?, paid=?,
     paid_at = CASE WHEN ? = 1 THEN COALESCE(paid_at, datetime('now')) ELSE NULL END WHERE id=?`)
-    .run(JSON.stringify(corrected), 'local_id' in b ? checkLocal(req, b.local_id) : d.local_id, direction, category, paid, paid, d.id);
+    .run(JSON.stringify(corrected), who, contact?.id ?? null, 'local_id' in b ? checkLocal(req, b.local_id) : d.local_id, direction, category, paid, paid, d.id);
   const prev = (JSON.parse(d.corrected_json || 'null') || JSON.parse(d.extracted_json || '{}')).fields || {};
   const changed = FIELD_KEYS.filter(k => String(prev[k] ?? '') !== String(fields[k] ?? '')).map(k => `${k}: ${prev[k] ?? '—'} → ${fields[k] ?? '—'}`);
-  audit(req, d.status === 'validado' ? 'Datos corregidos' : 'Documento validado', 'documento', d.id, changed.length ? changed.join('; ') : 'sin cambios');
-  res.json(docOut(getDoc(req), true));
+  audit(req, d.status === 'validado' ? 'Datos corregidos' : 'Documento validado', 'documento', d.id,
+    [changed.length ? changed.join('; ') : 'sin cambios', contact ? `${role}: ${contact.name}${newContact ? ' (nuevo)' : ''}` : null].filter(Boolean).join(' · '));
+  const saved = getDoc(req);
+  try { writeRecord(req, saved, { changed, contact, newContact }); } catch (e) { console.error('No se pudo guardar el registro en texto:', e.message); }
+  res.json(docOut(saved, true));
+});
+
+// Registro en texto de las validaciones del documento
+c.get('/documents/:id/record', (req, res) => {
+  const d = getDoc(req);
+  if (!fs.existsSync(recordPath(d))) return res.status(404).json({ error: 'Este documento todavía no se ha validado' });
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(d.filename.replace(/\.[^.]+$/, '') + ' - registro.txt')}`);
+  res.sendFile(recordPath(d));
 });
 
 // Cambios rápidos desde los listados: cobrado/pagado, categoría, recibido/emitido
@@ -484,7 +603,8 @@ c.patch('/documents/:id', (req, res) => {
 function accountingEntries(client, onlyValidated) {
   const clientId = client.id;
   const ownNif = client.nif ? client.nif.toUpperCase().replace(/[\s.\-]/g, '').replace(/^ES/, '') : null;
-  const docs = db.prepare(`SELECT * FROM documents WHERE client_id = ? AND COALESCE(doc_state, '') <> 'borrador'${onlyValidated ? " AND status = 'validado'" : ''}`).all(clientId)
+  // Los documentos capturados solo cuentan cuando una persona los ha validado
+  const docs = db.prepare(`SELECT * FROM documents WHERE client_id = ? AND COALESCE(doc_state, '') <> 'borrador' AND (source = 'creado' OR status = 'validado')${onlyValidated ? " AND status = 'validado'" : ''}`).all(clientId)
     .map(d => acc.docToEntry({ ...d, extracted: JSON.parse(d.extracted_json || 'null'), corrected: JSON.parse(d.corrected_json || 'null') }, { ownNif }))
     .filter(Boolean);
   const manual = db.prepare('SELECT * FROM entries WHERE client_id = ?').all(clientId).map(acc.manualToEntry);
@@ -500,7 +620,8 @@ c.get('/categories', (req, res) => res.json(acc.CATEGORIES));
 c.get('/accounting', (req, res) => {
   const all = accountingEntries(req.client, req.query.validated === '1');
   const years = [...new Set(all.map(e => Number(e.date.slice(0, 4))).filter(Boolean))].sort((a, b) => b - a);
-  res.json({ ...acc.compute(all, periodFrom(req.query)), years, catalog: acc.CATEGORIES });
+  const pendingCaptures = db.prepare("SELECT COUNT(*) n FROM documents WHERE client_id = ? AND COALESCE(source, '') <> 'creado' AND status <> 'validado'").get(req.client.id).n;
+  res.json({ ...acc.compute(all, periodFrom(req.query)), years, catalog: acc.CATEGORIES, pendingCaptures });
 });
 c.get('/accounting.csv', (req, res) => {
   const p = periodFrom(req.query);
@@ -557,6 +678,7 @@ c.delete('/documents/:id', (req, res) => {
     return res.status(400).json({ error: 'Una factura emitida no se puede borrar (numeración correlativa). Emite una factura rectificativa.' });
   db.prepare('DELETE FROM documents WHERE id = ?').run(d.id);
   fs.rm(path.join(UPLOAD_DIR, d.stored_name), { force: true }, () => {});
+  fs.rm(recordPath(d), { force: true }, () => {});
   audit(req, 'Documento eliminado', 'documento', d.id, d.filename);
   res.json({ ok: true });
 });
@@ -741,7 +863,7 @@ async function saveCreated(req, type, draftIn, { id = null, emit = false } = {})
   if (!d.lines.length) throw bad('Añade al menos una línea');
   const isInv = ['factura', 'rectificativa'].includes(type);
   if (isInv && emit && !d.party.nif) throw bad('Para emitir una factura hace falta el NIF del cliente');
-  if (isInv && emit && !req.client.nif) throw bad('Para emitir facturas, rellena el NIF de tu empresa en Configuración');
+  if (isInv && emit && !req.client.nif) throw bad('Para emitir facturas, falta el NIF de tu empresa (el administrador puede añadirlo en la ficha del cliente)');
   const t = sales.totals(d);
   const year = Number(d.fecha.slice(0, 4));
   let { series = null, seq = null, doc_state = 'borrador', issued_at = null, hash = null, prev_hash = null } = prev || {};
@@ -886,8 +1008,9 @@ c.get('/contacts', (req, res) => {
   const rows = db.prepare('SELECT * FROM contacts WHERE client_id = ? ORDER BY name COLLATE NOCASE').all(req.client.id);
   // Volumen de operaciones con cada tercero (facturas)
   const ents = accountingEntries(req.client, false).filter(e => e.source === 'doc');
+  const owner = new Map(db.prepare('SELECT id, contact_id FROM documents WHERE client_id = ? AND contact_id IS NOT NULL').all(req.client.id).map(d => [d.id, d.contact_id]));
   res.json(rows.map(c => {
-    const mine = ents.filter(e => (c.nif && e.nif === c.nif) || (!c.nif && e.tercero && e.tercero.toLowerCase() === c.name.toLowerCase()));
+    const mine = ents.filter(e => owner.has(e.id) ? owner.get(e.id) === c.id : (c.nif && e.nif === c.nif) || (!c.nif && e.tercero && e.tercero.toLowerCase() === c.name.toLowerCase()));
     return { ...c, ventas: Math.round(mine.filter(e => e.kind === 'ingreso').reduce((a, e) => a + (e.base || 0), 0) * 100) / 100,
       compras: Math.round(mine.filter(e => e.kind === 'gasto').reduce((a, e) => a + (e.base || 0), 0) * 100) / 100,
       pendiente: Math.round(mine.filter(e => !e.paid && e.total > 0).reduce((a, e) => a + e.total, 0) * 100) / 100 };

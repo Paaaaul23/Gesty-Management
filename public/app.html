@@ -18,29 +18,20 @@
     </nav>
     <div class="section-label">Documentos</div>
     <nav class="nav">
-      <button data-page="documentos" data-dir="emitido"><svg class="i"><use href="/icons.svg#send"/></svg><span class="nav-label">Ventas (emitidos)</span></button>
-      <button data-page="documentos" data-dir="recibido"><svg class="i"><use href="/icons.svg#inbox"/></svg><span class="nav-label">Compras (recibidos)</span></button>
       <button data-page="documentos" data-dir=""><svg class="i"><use href="/icons.svg#folder-open"/></svg><span class="nav-label">Todos los documentos</span></button>
       <button data-page="contactos"><svg class="i"><use href="/icons.svg#contact"/></svg><span class="nav-label">Clientes y proveedores</span></button>
-      <button data-page="articulos"><svg class="i"><use href="/icons.svg#package"/></svg><span class="nav-label">Artículos y servicios</span></button>
     </nav>
-    <div class="section-label">Contabilidad y fiscalidad</div>
+    <div class="section-label">Contabilidad</div>
     <nav class="nav">
       <button data-page="contabilidad"><svg class="i"><use href="/icons.svg#chart-column"/></svg><span class="nav-label">Gastos y beneficios</span></button>
-      <button data-page="general"><svg class="i"><use href="/icons.svg#scale"/></svg><span class="nav-label">Contabilidad general</span></button>
-      <button data-page="impuestos"><svg class="i"><use href="/icons.svg#landmark"/></svg><span class="nav-label">Impuestos</span></button>
-      <button data-page="deducibilidad"><svg class="i"><use href="/icons.svg#badge-percent"/></svg><span class="nav-label">Gastos deducibles</span></button>
-      <button data-page="libros"><svg class="i"><use href="/icons.svg#book-open"/></svg><span class="nav-label">Libros registro</span></button>
     </nav>
     <div class="section-label">Control</div>
     <nav class="nav">
       <button data-page="actividad"><svg class="i"><use href="/icons.svg#scroll-text"/></svg><span class="nav-label">Historial de actividad</span></button>
-      <button data-page="precision"><svg class="i"><use href="/icons.svg#target"/></svg><span class="nav-label">Precisión del reconocimiento</span></button>
     </nav>
     <div class="section-label">Negocio</div>
     <nav class="nav">
       <button data-page="locales"><svg class="i"><use href="/icons.svg#store"/></svg><span class="nav-label">Locales y empleados</span></button>
-      <button data-page="config"><svg class="i"><use href="/icons.svg#settings"/></svg><span class="nav-label">Configuración</span></button>
     </nav>
     <div class="bottom">
       <div class="user"><div class="avatar" id="meAvatar">G</div><div class="user-meta"><b id="meName">—</b><span id="meRole">Cliente</span></div></div>
@@ -66,9 +57,8 @@
       <div class="page active" id="resumen">
         <div class="eyebrow">Visión general</div><h2 id="hello">Hola</h2><p class="sub">Todo lo importante de tu negocio en un solo lugar.</p>
         <div class="grid stats" id="stats"></div>
-        <div id="taxHint"></div>
         <div class="grid two">
-          <div class="card"><div class="card-head"><div><div class="card-title">Últimos documentos</div><div class="muted">Capturados con el reconocimiento automático</div></div><button class="btn" onclick="go('documentos')">Ver todos</button></div><div id="recent"></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Últimos documentos</div><div class="muted">Recibidos y emitidos, del más reciente al más antiguo</div></div><button class="btn" onclick="go('documentos',{dir:'',type:''})">Ver todos</button></div><div id="recent"></div></div>
           <div class="card"><div class="card-head"><div><div class="card-title">Por tipo</div><div class="muted">Documentos capturados</div></div></div><div id="byType"></div></div>
         </div>
       </div>
@@ -76,7 +66,7 @@
       <!-- CAPTURA -->
       <div class="page" id="captura">
         <div class="eyebrow">Automatización</div><h2>Captura inteligente</h2>
-        <p class="sub">Sube una factura, albarán o pedido (PDF o foto). El sistema lee el texto, extrae proveedor, NIF, número, fecha e importes y comprueba que cuadren. Después revisas y corriges: cada corrección cuenta para medir la precisión real.</p>
+        <p class="sub">Sube una factura, albarán o pedido (PDF o foto). El sistema lee el texto, extrae proveedor, NIF, número, fecha e importes y comprueba que cuadren. Después lo revisas y lo <b>validas personalmente</b>: solo entonces queda registrado (archivo original y registro en texto) y cuenta en la contabilidad.</p>
         <div class="grid two">
           <div class="card">
             <div class="dropzone" id="dropzone">
@@ -99,20 +89,21 @@
               <div class="item"><span class="badge green">3</span><div class="item-body"><b>Extraer campos</b><p>Proveedor, NIF, número, fechas, base, IVA, recargo, retención, total, pago y líneas</p></div></div>
               <div class="item"><span class="badge green">4</span><div class="item-body"><b>Validar y corregir</b><p>NIF e IBAN con dígito de control, base + IVA = total, suma de líneas; relee zonas dudosas</p></div></div>
               <div class="item"><span class="badge teal">IA</span><div class="item-body"><b>Lectura con IA (opcional)</b><p>Si el administrador la activa, Claude lee el original y se contrasta con lo anterior</p></div></div>
-              <div class="item"><span class="badge teal">5</span><div class="item-body"><b>Revisión humana</b><p>Corriges lo que falle y se registra la precisión por campo</p></div></div>
+              <div class="item"><span class="badge teal">5</span><div class="item-body"><b>Validación personal</b><p>Revisas, confirmas el proveedor (por NIF/CIF o nombre) y validas: se guardan el archivo y el registro en texto</p></div></div>
             </div>
             <p class="muted" style="margin:14px 0 0">Un PDF digital se lee en menos de un segundo; una foto o un escaneo, en unos 2 segundos (más si se usa la IA).</p>
           </div>
         </div>
+        <div class="card" style="margin-top:16px"><div class="card-head"><div><div class="card-title">Capturas pendientes de validar</div><div class="muted">No cuentan en la contabilidad hasta que las valides. Pulsa una para revisarla.</div></div></div><div id="pendingCaptures"></div></div>
       </div>
 
       <!-- DOCUMENTOS -->
       <div class="page" id="documentos">
-        <div class="eyebrow" id="docsEyebrow">Archivo</div><h2 id="docsTitle">Documentos</h2><p class="sub" id="docsSub">Documentos capturados, su estado de revisión y los datos reconocidos.</p>
+        <div class="eyebrow" id="docsEyebrow">Archivo</div><h2 id="docsTitle">Documentos</h2><p class="sub" id="docsSub">Ventas emitidas y compras recibidas: su estado de revisión y los datos reconocidos.</p>
         <div class="card">
           <div class="card-head"><div class="tabs" id="dirTabs"></div><div class="actions" id="docActions"></div></div>
           <div class="tabs sub" id="docTabs"></div>
-          <div class="table-wrap" id="docsTable"></div>
+          <div id="docsTable"></div>
         </div>
       </div>
 
@@ -121,53 +112,22 @@
 
       <!-- CLIENTES Y PROVEEDORES -->
       <div class="page" id="contactos">
-        <div class="eyebrow">Agenda</div><h2>Clientes y proveedores</h2><p class="sub">Tus clientes y proveedores con el volumen de operaciones y lo pendiente de cobro o pago. Se añaden solos al emitir documentos.</p>
+        <div class="eyebrow">Agenda</div><h2>Clientes y proveedores</h2><p class="sub">Tus clientes y proveedores con el volumen de operaciones y lo pendiente de cobro o pago. Se añaden al validar capturas (con tu confirmación si son nuevos) y al emitir documentos.</p>
         <div class="card"><div class="card-head"><div class="tabs" id="ctTabs" style="margin:0"><button class="active" data-kind="">Todos</button><button data-kind="cliente">Clientes</button><button data-kind="proveedor">Proveedores</button></div>
           <div class="actions"><button class="btn" onclick="importContacts()"><svg class="i"><use href="/icons.svg#download"/></svg>Importar de documentos</button><button class="btn primary" onclick="editContact()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo</button></div></div>
-          <div class="table-wrap" id="ctTable"></div></div>
-      </div>
-
-      <!-- ARTÍCULOS -->
-      <div class="page" id="articulos">
-        <div class="eyebrow">Catálogo</div><h2>Artículos y servicios</h2><p class="sub">Lo que vendes habitualmente, con su precio e IVA, para añadirlo rápido a presupuestos y facturas.</p>
-        <div class="card"><div class="card-head"><div class="card-title">Catálogo</div><button class="btn primary" onclick="editProduct()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo artículo</button></div><div class="table-wrap" id="prTable"></div></div>
-      </div>
-
-      <!-- CONTABILIDAD GENERAL -->
-      <div class="page" id="general">
-        <div class="eyebrow">Contabilidad</div><h2>Contabilidad general</h2>
-        <p class="sub">Asientos por partida doble según el Plan General de Contabilidad de PYMES, generados automáticamente a partir de tus facturas, cobros y pagos, apuntes, impuestos presentados y amortizaciones.</p>
-        <div class="filters">
-          <div class="field"><label>Ejercicio</label><select id="glYear"></select></div>
-          <label class="check-inline"><input type="checkbox" id="glValidated"> Solo documentos validados</label>
-          <div class="actions" style="margin-left:auto">
-            <button class="btn" onclick="editOpening()"><svg class="i"><use href="/icons.svg#landmark"/></svg>Saldos iniciales</button>
-            <button class="btn" onclick="exportLedger()"><svg class="i"><use href="/icons.svg#download"/></svg>Exportar CSV</button>
-            <button class="btn" onclick="printLedger()"><svg class="i"><use href="/icons.svg#printer"/></svg>Imprimir</button>
-          </div>
-        </div>
-        <div id="glNotice"></div>
-        <div class="card"><div class="tabs" id="glTabs"><button class="active" data-view="pyg">Pérdidas y ganancias</button><button data-view="balance">Balance de situación</button><button data-view="diario">Libro diario</button><button data-view="mayor">Libro mayor</button><button data-view="sumas">Sumas y saldos</button></div><div id="glBody"></div></div>
+          <div id="ctTable"></div></div>
       </div>
 
       <!-- REVISIÓN DE UN DOCUMENTO -->
       <div class="page" id="revision"></div>
 
-      <!-- PRECISIÓN -->
-      <div class="page" id="precision">
-        <div class="eyebrow">Control de calidad</div><h2>Precisión del reconocimiento</h2>
-        <p class="sub">Compara lo que extrajo el sistema con lo que validaste. Solo cuentan los documentos validados. <b>Correcto</b>: coincide · <b>Corregido</b>: lo leyó mal · <b>No detectado</b>: no lo encontró · <b>Sobrante</b>: extrajo un valor que borraste.</p>
-        <div id="accuracy"></div>
-      </div>
-
       <!-- CONTABILIDAD -->
       <div class="page" id="contabilidad">
         <div class="eyebrow">Contabilidad</div><h2>Gastos y beneficios</h2>
-        <p class="sub">Ingresos (facturas emitidas), gastos (facturas recibidas y apuntes manuales como nóminas o alquiler), beneficio, IVA a ingresar y pendientes de cobro y pago. Importes sin IVA; las facturas rectificativas restan.</p>
+        <p class="sub">Ingresos (facturas emitidas), gastos (facturas recibidas y apuntes manuales como nóminas o alquiler), beneficio, IVA a ingresar y pendientes de cobro y pago. Importes sin IVA; las facturas rectificativas restan. Los documentos capturados cuentan cuando los validas.</p>
         <div class="filters">
           <div class="field"><label>Año</label><select id="accYear"></select></div>
           <div class="field"><label>Periodo</label><select id="accPeriod"></select></div>
-          <label class="check-inline"><input type="checkbox" id="accValidated"> Solo documentos validados</label>
           <div class="actions" style="margin-left:auto">
             <button class="btn" onclick="editEntry()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo apunte</button>
             <button class="btn" onclick="exportCsv()"><svg class="i"><use href="/icons.svg#download"/></svg>Exportar libro (CSV)</button>
@@ -185,109 +145,48 @@
           <div class="card"><div class="card-head"><div><div class="card-title">IVA y retenciones por trimestre</div><div class="muted">Orientativo para los modelos 303 y 111</div></div></div><div class="table-wrap" id="accIva"></div></div>
         </div>
         <div class="grid halves" style="margin-bottom:16px">
-          <div class="card"><div class="card-head"><div><div class="card-title">Pendiente de cobro</div><div class="muted">Facturas emitidas sin cobrar (todas las fechas)</div></div></div><div id="accCobrar"></div></div>
-          <div class="card"><div class="card-head"><div><div class="card-title">Pendiente de pago</div><div class="muted">Facturas recibidas sin pagar (todas las fechas)</div></div></div><div id="accPagar"></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Pendiente de cobro</div><div class="muted">Facturas emitidas sin cobrar (todas las fechas)</div></div></div><div id="accCobrarSum"></div><div id="accCobrar"></div></div>
+          <div class="card"><div class="card-head"><div><div class="card-title">Pendiente de pago</div><div class="muted">Facturas recibidas sin pagar (todas las fechas)</div></div></div><div id="accPagarSum"></div><div id="accPagar"></div></div>
         </div>
         <div class="grid halves" style="margin-bottom:16px">
           <div class="card"><div class="card-title" style="margin-bottom:10px">Principales clientes</div><div id="accClientes"></div></div>
           <div class="card"><div class="card-title" style="margin-bottom:10px">Principales proveedores</div><div id="accProveedores"></div></div>
         </div>
-        <div class="card"><div class="card-head"><div><div class="card-title">Libro de ingresos y gastos</div><div class="muted">Apuntes del periodo. Pulsa uno para abrirlo o editarlo.</div></div></div><div class="table-wrap" id="accBook"></div></div>
-      </div>
-
-      <!-- IMPUESTOS -->
-      <div class="page" id="impuestos">
-        <div class="eyebrow">Fiscalidad</div><h2>Impuestos</h2>
-        <p class="sub">Calendario de modelos de la Agencia Tributaria con el borrador de cada uno calculado a partir de tus facturas y apuntes. Pulsa un modelo para ver sus casillas, copiarlas en la Sede Electrónica y marcarlo como presentado.</p>
-        <div class="filters">
-          <div class="field"><label>Ejercicio</label><select id="taxYear"></select></div>
-          <div class="actions" style="margin-left:auto">
-            <button class="btn" onclick="go('config')"><svg class="i"><use href="/icons.svg#settings"/></svg>Perfil fiscal</button>
-            <button class="btn" id="taxBulk"><svg class="i"><use href="/icons.svg#list-checks"/></svg>Marcar vencidos como presentados</button>
-          </div>
-        </div>
-        <div id="taxNotice"></div>
-        <div class="grid stats" id="taxStats"></div>
-        <div class="grid two" style="margin-bottom:16px">
-          <div class="card"><div class="card-head"><div><div class="card-title">Calendario fiscal</div><div class="muted">Plazos de presentación (si caen en fin de semana, pasan al lunes; revisa festivos)</div></div></div><div class="table-wrap" id="taxCal"></div></div>
-          <div class="card"><div class="card-head"><div><div class="card-title">Dinero a reservar</div><div class="muted">Lo que tendrás que pagar en los próximos plazos</div></div></div><div id="taxReserve"></div></div>
-        </div>
-        <p class="muted">Los borradores son orientativos: no contemplan prorrata, regímenes especiales, operaciones intracomunitarias ni compensaciones de periodos anteriores. Revísalos con tu asesoría antes de presentar.</p>
-      </div>
-
-      <!-- DEDUCIBILIDAD -->
-      <div class="page" id="deducibilidad">
-        <div class="eyebrow">Fiscalidad</div><h2>Gastos deducibles</h2>
-        <p class="sub">Qué parte de cada gasto puedes deducir en tu impuesto (IRPF o Sociedades) y cuánto IVA soportado puedes recuperar, con el motivo. Depende de tu perfil fiscal.</p>
-        <div class="filters">
-          <div class="field"><label>Ejercicio</label><select id="dedYear"></select></div>
-          <div class="field"><label>Periodo</label><select id="dedQuarter"><option value="">Todo el año</option><option value="1">1.º trimestre</option><option value="2">2.º trimestre</option><option value="3">3.º trimestre</option><option value="4">4.º trimestre</option></select></div>
-        </div>
-        <div class="grid stats" id="dedStats"></div>
-        <div class="grid two">
-          <div class="card"><div class="card-title" style="margin-bottom:10px">Gastos del periodo</div><div class="table-wrap" id="dedTable"></div></div>
-          <div class="card"><div class="card-title" style="margin-bottom:10px">Reglas principales</div><div id="dedRules"></div></div>
-        </div>
-      </div>
-
-      <!-- LIBROS REGISTRO -->
-      <div class="page" id="libros">
-        <div class="eyebrow">Contabilidad</div><h2>Libros registro de IVA</h2>
-        <p class="sub">Registro de facturas expedidas y recibidas por orden de fecha, como exige la normativa del IVA (y del IRPF para autónomos). Exportable para tu asesoría.</p>
-        <div class="filters">
-          <div class="field"><label>Ejercicio</label><select id="bookYear"></select></div>
-          <div class="field"><label>Periodo</label><select id="bookQuarter"><option value="">Todo el año</option><option value="1">1.º trimestre</option><option value="2">2.º trimestre</option><option value="3">3.º trimestre</option><option value="4">4.º trimestre</option></select></div>
-          <div class="actions" style="margin-left:auto"><button class="btn" onclick="exportBook()"><svg class="i"><use href="/icons.svg#download"/></svg>Exportar CSV</button></div>
-        </div>
-        <div class="card"><div class="tabs" id="bookTabs"><button class="active" data-kind="emitidas">Facturas expedidas</button><button data-kind="recibidas">Facturas recibidas</button></div><div class="table-wrap" id="bookTable"></div></div>
+        <div class="card"><div class="card-head"><div><div class="card-title">Libro de ingresos y gastos</div><div class="muted">Apuntes del periodo. Pulsa uno para abrirlo o editarlo.</div></div></div><div id="accBook"></div></div>
       </div>
 
       <!-- HISTORIAL -->
       <div class="page" id="actividad">
         <div class="eyebrow">Trazabilidad</div><h2>Historial de actividad</h2>
-        <p class="sub">Registro de todo lo que se hace en la cuenta: quién subió, validó, corrigió o marcó como pagado cada documento, apuntes, impuestos presentados y cambios de configuración.</p>
-        <div class="card"><div class="tabs" id="actTabs"><button class="active" data-entity="">Todo</button><button data-entity="documento">Documentos</button><button data-entity="apunte">Apuntes</button><button data-entity="impuesto">Impuestos</button><button data-entity="empresa">Configuración</button></div><div class="table-wrap" id="actTable"></div></div>
+        <p class="sub">Registro de todo lo que se hace en la cuenta: quién subió, validó, corrigió o marcó como pagado cada documento, proveedores y clientes creados y apuntes manuales.</p>
+        <div class="card"><div id="actTable"></div></div>
       </div>
 
       <!-- LOCALES Y EMPLEADOS -->
       <div class="page" id="locales">
         <div class="eyebrow">Negocio</div><h2>Locales y empleados</h2><p class="sub">Tus establecimientos y las personas que trabajan en cada uno.</p>
         <div class="card" style="margin-bottom:16px"><div class="card-head"><div class="card-title">Locales</div><button class="btn primary" onclick="editLocal()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo local</button></div><div id="localesList"></div></div>
-        <div class="card"><div class="card-head"><div class="card-title">Empleados</div><button class="btn primary" onclick="editEmployee()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo empleado</button></div><div class="table-wrap" id="employeesTable"></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Empleados</div><button class="btn primary" onclick="editEmployee()"><svg class="i"><use href="/icons.svg#plus"/></svg>Nuevo empleado</button></div><div id="employeesTable"></div></div>
       </div>
 
-      <!-- CONFIGURACIÓN -->
-      <div class="page" id="config">
-        <div class="eyebrow">Sistema</div><h2>Configuración</h2><p class="sub">Datos de la empresa. El NIF se usa para distinguir tus propios datos de los del proveedor al leer documentos.</p>
-        <div class="grid halves">
-          <form class="card" id="companyForm"></form>
-          <form class="card" id="fiscalForm"></form>
-          <form class="card" id="pwdForm">
-            <div class="card-title" style="margin-bottom:14px">Contraseña de acceso</div>
-            <div class="form-grid">
-              <div class="field full"><label>Contraseña actual</label><input type="password" name="current" autocomplete="current-password" required></div>
-              <div class="field full"><label>Nueva contraseña (mín. 8)</label><input type="password" name="next" autocomplete="new-password" minlength="8" required></div>
-            </div>
-            <div class="actions" style="margin-top:16px"><button class="btn primary" type="submit">Cambiar contraseña</button></div>
-          </form>
-        </div>
-      </div>
     </section>
   </main>
 </div>
 <div class="modal" id="modal"></div>
 <div class="toast" id="toast"></div>
 <script src="/common.js"></script>
+<script src="/datatable.js"></script>
 <script>
 initTheme(); setupSidebar();
 
 const CID = new URLSearchParams(location.search).get('cid');
 const capi = (p, o) => api('/api/c' + p + (CID ? (p.includes('?') ? '&' : '?') + 'cid=' + encodeURIComponent(CID) : ''), o);
 const fileUrl = id => `/api/c/documents/${id}/file` + (CID ? `?cid=${encodeURIComponent(CID)}` : '');
+const recordUrl = id => `/api/c/documents/${id}/record` + (CID ? `?cid=${encodeURIComponent(CID)}` : '');
 
-const TITLES = { editor: 'Documento', contactos: 'Clientes y proveedores', articulos: 'Artículos y servicios', general: 'Contabilidad general', resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', contabilidad: 'Gastos y beneficios', impuestos: 'Impuestos', deducibilidad: 'Gastos deducibles', libros: 'Libros registro', actividad: 'Historial de actividad', precision: 'Precisión del reconocimiento', locales: 'Locales y empleados', config: 'Configuración' };
+const TITLES = { editor: 'Documento', contactos: 'Clientes y proveedores', resumen: 'Resumen', captura: 'Captura inteligente', documentos: 'Documentos', revision: 'Revisión de documento', contabilidad: 'Gastos y beneficios', actividad: 'Historial de actividad', locales: 'Locales y empleados' };
 const TYPE_TITLES = { '': 'Todos', factura: 'Facturas', rectificativa: 'Rectificativas', albaran: 'Albaranes', pedido: 'Pedidos', presupuesto: 'Presupuestos y ofertas' };
-const DIR_TITLES = { '': 'Todos los documentos', recibido: 'Recibidos', emitido: 'Emitidos' };
+const DIR_TITLES = { '': 'Todos los documentos', recibido: 'Compras recibidas', emitido: 'Ventas emitidas' };
 // "Facturas emitidas", "Albaranes recibidos"…
 const TYPE_GENDER = { factura: 'f', rectificativa: 'f', albaran: 'm', pedido: 'm', presupuesto: 'm' };
 const docsTitle = () => {
@@ -296,7 +195,6 @@ const docsTitle = () => {
   const f = TYPE_GENDER[docType] === 'f';
   return `${TYPE_TITLES[docType]} ${docDir === 'emitido' ? (f ? 'emitidas' : 'emitidos') : (f ? 'recibidas' : 'recibidos')}`;
 };
-const partyLabel = dir => dir === 'emitido' ? 'Cliente' : 'Proveedor';
 let CATALOG = null;
 const FIELD_LABELS = { proveedor: 'Proveedor / emisor', nif: 'NIF / CIF', numero: 'Número', fecha: 'Fecha', vencimiento: 'Vencimiento', base: 'Base imponible', iva_tipo: 'Tipo IVA %', iva: 'Cuota IVA', recargo: 'Recargo equiv.', retencion: 'Retención IRPF', total: 'Total', forma_pago: 'Forma de pago', iban: 'IBAN' };
 const NUM_FIELDS = ['base', 'iva_tipo', 'iva', 'recargo', 'retencion', 'total'];
@@ -305,42 +203,78 @@ let locales = [], docType = '', docDir = '';
 
 function go(page, opts = {}) {
   if (page === 'documentos') { docType = opts.type ?? docType; docDir = opts.dir ?? docDir; }
-  $$('.nav button[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page && (page !== 'documentos' || (b.dataset.dir || '') === docDir)));
+  $$('.nav button[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   $$('.page').forEach(p => p.classList.toggle('active', p.id === page));
   $('#pageTitle').textContent = page === 'documentos' ? docsTitle() : TITLES[page];
   if (innerWidth < 720) $('#sidebar').classList.remove('open');
   scrollTo(0, 0);
-  ({ contactos: loadContacts, articulos: loadProducts, general: loadLedger, resumen: loadSummary, documentos: loadDocs, contabilidad: loadAccounting, impuestos: loadTaxes, deducibilidad: loadDeductibility, libros: loadBooks, actividad: loadActivity, precision: loadAccuracy, locales: loadLocales, config: () => { loadCompany(); loadFiscalProfile(); }, captura: loadLocalSelect })[page]?.();
+  ({ contactos: loadContacts, resumen: loadSummary, documentos: loadDocs, contabilidad: loadAccounting, actividad: loadActivity, locales: loadLocales, captura: loadCapture })[page]?.();
 }
-$$('.nav button[data-page]').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.page === 'documentos' ? { dir: b.dataset.dir || '', type: '' } : {}));
+$$('.nav button[data-page]').forEach(b => b.onclick = () => go(b.dataset.page, b.dataset.page === 'documentos' ? { dir: '', type: '' } : {}));
 function uploadFor(dir) { go('captura'); $('#uploadDir').value = dir || ''; }
 
-const statusBadge = s => s === 'validado' ? `<span class="badge green">${icon('circle-check')}Validado</span>` : `<span class="badge amber">${icon('clock')}Por revisar</span>`;
+const statusBadge = s => s === 'validado' ? `<span class="badge green">${icon('circle-check')}Validado</span>` : `<span class="badge amber">${icon('clock')}Por validar</span>`;
 const typeLabel = t => DOC_TYPES[t] || 'Sin clasificar';
 const scoreBadge = s => s === null || s === undefined ? '' : `<span class="badge ${s >= 85 ? 'green' : s >= 60 ? 'amber' : 'red'}">${s}%</span>`;
 const pct = v => v === null || v === undefined ? '—' : String(v).replace('.', ',') + '%';
+const catLabel = k => (CATALOG ? [...CATALOG.gasto, ...CATALOG.ingreso].find(x => x[0] === k)?.[1] : null) || k || '—';
+const localName = id => locales.find(l => l.id === Number(id))?.name || `Local ${id}`;
+async function ensureRefs() {
+  await Promise.all([CATALOG ? null : capi('/categories').then(c => { CATALOG = c; }), locales.length ? null : capi('/locales').then(l => { locales = l; })]).catch(() => {});
+}
+
+// Columnas comunes de los listados de documentos (show: las que se ven; el resto se puede filtrar, ordenar y buscar)
+const docF = d => (d.corrected || d.extracted)?.fields || {};
+const docT = d => d.corrected?.doc_type || d.doc_type;
+const docTotal = d => { const v = docF(d).total; if (v === null || v === undefined || v === '') return null; return docT(d) === 'rectificativa' ? -Math.abs(v) : Number(v); };
+function docColumns(show) {
+  const cols = [
+    { key: 'archivo', label: 'Archivo', get: d => d.source === 'creado' ? (docF(d).numero || 'Borrador') : d.filename,
+      html: d => `<b>${esc(d.source === 'creado' ? (docF(d).numero || 'Borrador') : d.filename)}</b><div class="muted">${d.source === 'creado' ? 'Creado' : 'Subido'} ${fmtDate(d.created_at)}</div>` },
+    { key: 'subido', label: 'Fecha de subida', type: 'date', get: d => d.created_at },
+    { key: 'origen', label: 'Origen', type: 'enum', get: d => d.source === 'creado' ? 'creado' : 'captura', label_of: v => v === 'creado' ? 'Creado en Gesty' : 'Captura inteligente' },
+    { key: 'tipo', label: 'Tipo', type: 'enum', get: d => docT(d) || 'sin', label_of: v => v === 'sin' ? 'Sin clasificar' : typeLabel(v) },
+    { key: 'dir', label: 'Venta / compra', type: 'enum', get: d => d.direction, label_of: v => v === 'emitido' ? 'Venta emitida' : 'Compra recibida', html: d => dirBadge(d.direction) },
+    { key: 'tercero', label: 'Proveedor / cliente', get: d => docF(d).proveedor },
+    { key: 'nif', label: 'NIF / CIF', get: d => docF(d).nif },
+    { key: 'numero', label: 'Número', get: d => docF(d).numero },
+    { key: 'fecha', label: 'Fecha doc.', type: 'date', get: d => docF(d).fecha },
+    { key: 'vencimiento', label: 'Vencimiento', type: 'date', get: d => docF(d).vencimiento },
+    { key: 'base', label: 'Base', type: 'money', cls: 'num', get: d => docF(d).base },
+    { key: 'iva', label: 'IVA', type: 'money', cls: 'num', get: d => docF(d).iva },
+    { key: 'total', label: 'Total', type: 'money', cls: 'num', get: docTotal },
+    { key: 'forma_pago', label: 'Forma de pago', get: d => docF(d).forma_pago },
+    { key: 'categoria', label: 'Categoría', type: 'enum', get: d => d.category, label_of: catLabel },
+    { key: 'local', label: 'Local', type: 'enum', get: d => d.local_id, label_of: localName },
+    { key: 'pago', label: 'Pago', type: 'enum', get: d => isInvoice(docT(d)) && d.doc_state !== 'borrador' ? (d.paid ? 'si' : 'no') : null,
+      label_of: v => v === 'si' ? 'Pagado / cobrado' : 'Pendiente', html: d => d.doc_state === 'borrador' ? '' : payBadge(d, docT(d)) },
+    { key: 'lectura', label: 'Lectura %', type: 'number', get: d => d.source === 'creado' ? null : d.extracted?.score ?? null,
+      html: d => d.source === 'creado' ? '<span class="badge teal">Creado</span>' : scoreBadge(d.extracted?.score) },
+    { key: 'estado', label: 'Estado', type: 'enum', get: d => d.source === 'creado' ? (STATE_LABEL[d.doc_state]?.[1] || d.doc_state || 'Borrador') : d.status === 'validado' ? 'Validado' : 'Por validar',
+      html: d => d.source === 'creado' ? stateBadge(d.doc_state) : statusBadge(d.status) },
+    { key: 'validado_por', label: 'Validado por', get: d => d.source === 'creado' ? null : d.validated_by },
+    { key: 'validado_el', label: 'Fecha de validación', type: 'date', get: d => d.source === 'creado' ? null : d.validated_at },
+  ];
+  return cols.map(c => ({ ...c, hidden: !show.includes(c.key) }));
+}
 
 // ---------------------------------------------------------------- resumen
 async function loadSummary() {
   try {
-    const s = await capi('/summary');
+    const [s, docs] = await Promise.all([capi('/summary'), capi('/documents'), ensureRefs()]);
     const f = s.finance;
     const card = (label, ic, v, foot, onclick, neg) => `<div class="card" ${onclick ? `style="cursor:pointer" onclick="${onclick}"` : ''}><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value ${neg ? 'neg' : ''}">${v}</div><div class="stat-foot">${foot}</div></div>`;
     $('#stats').innerHTML =
       card(`Ingresos ${f.year}`, 'trending-up', money(f.ingresos), `${money(f.porCobrar)} pendiente de cobro`, "go('contabilidad')") +
       card(`Gastos ${f.year}`, 'trending-down', money(f.gastos), `${money(f.porPagar)} pendiente de pago`, "go('contabilidad')") +
       card(`Beneficio ${f.year}`, 'wallet', money(f.beneficio), f.margen === null ? 'Sin ingresos todavía' : `Margen ${pct(f.margen)}`, "go('contabilidad')", f.beneficio < 0) +
-      card('Documentos', 'files', s.documents, `${s.pending} por revisar · precisión ${pct(s.accuracy)}`, "go('documentos',{dir:'',type:''})");
-    const n = f.next;
-    $('#taxHint').innerHTML = `<div class="card" style="margin-bottom:16px;cursor:pointer;display:flex;gap:18px;align-items:center;flex-wrap:wrap" onclick="go('impuestos')">
-      <span class="stat-icon">${icon('landmark')}</span>
-      <div style="flex:1;min-width:220px"><b>${n ? `Próximo impuesto: modelo ${n.modelo} (${esc(n.name)})` : 'Impuestos al día'}</b>
-        <div class="muted">${n ? `${n.period === '0A' ? 'Anual' : n.period} · hasta el ${isoToEs(n.deadline)} · faltan ${daysTo(n.deadline)} días${typeof n.result === 'number' ? ' · ' + money(n.result) : ''}` : 'No hay presentaciones pendientes en los próximos plazos'}</div></div>
-      <div style="text-align:right"><div class="muted">Reserva para impuestos</div><b style="font-size:18px">${money(f.reserva)}</b></div>
-      <button class="btn sm soft">Ver impuestos</button></div>`;
-    $('#recent').innerHTML = s.recent.length ? `<div class="list">${s.recent.map(d => `
-      <div class="item clickable" style="cursor:pointer" onclick="openDoc(${d.id})"><div class="dot"></div><div class="item-body"><b>${esc(d.filename)}</b><p>${typeLabel(d.doc_type)} · ${dirLabel(d.direction)} · ${fmtDate(d.created_at)}</p></div>${scoreBadge(d.score)}${statusBadge(d.status)}</div>`).join('')}</div>`
-      : `<div class="empty">${icon('scan-line')}<div>Aún no hay documentos.</div><button class="btn primary" style="margin-top:12px" onclick="go('captura')">${icon('upload')}Subir el primero</button></div>`;
+      card('Documentos', 'files', s.documents, `${s.pending} capturas por validar`, s.pending ? "go('captura')" : "go('documentos',{dir:'',type:''})");
+    dataTable('#recent', {
+      id: 'recent', rows: docs, limit: 8, sort: { key: 'subido', dir: 'desc' },
+      columns: docColumns(['archivo', 'tipo', 'dir', 'tercero', 'total', 'estado']),
+      onRow: d => `openDoc(${d.id})`,
+      empty: `<div class="empty">${icon('scan-line')}<div>Aún no hay documentos.</div><button class="btn primary" style="margin-top:12px" onclick="go('captura')">${icon('upload')}Subir el primero</button></div>`,
+    });
     const total = s.byType.reduce((a, b) => a + b.n, 0);
     const dirs = Object.fromEntries(s.byDirection.map(d => [d.d, d.n]));
     $('#byType').innerHTML = total ? `<div class="list">
@@ -359,15 +293,28 @@ function payBadge(d, t) {
   return `<button class="badge ${d.paid ? 'green' : 'amber'} pay-btn" title="Pulsa para cambiar" onclick="event.stopPropagation();togglePaid(${d.id}, ${d.paid ? 0 : 1})">${icon(d.paid ? 'circle-check' : 'clock')}${d.paid ? done : todo}</button>`;
 }
 async function togglePaid(id, paid, after) {
-  try { await capi('/documents/' + id, { method: 'PATCH', body: { paid: !!paid } }); toast(paid ? 'Marcada como pagada/cobrada' : 'Marcada como pendiente'); (after || loadDocs)(); }
+  try { await capi('/documents/' + id, { method: 'PATCH', body: { paid: !!paid } }); toast(paid ? 'Marcada como pagada/cobrada' : 'Marcada como pendiente'); (after || (() => go($('.page.active').id)))(); }
   catch (e) { toast(e.message, true); }
 }
 
 // ---------------------------------------------------------------- captura
 async function loadLocalSelect() {
   locales = await capi('/locales').catch(() => []);
+  const cur = $('#uploadLocal').value;
   $('#uploadLocal').innerHTML = `<option value="">Sin asignar a un local</option>` + locales.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
-  if (locales.length === 1) $('#uploadLocal').value = locales[0].id;
+  $('#uploadLocal').value = cur || (locales.length === 1 ? locales[0].id : '');
+}
+async function loadCapture() {
+  await Promise.all([loadLocalSelect(), ensureRefs()]);
+  try {
+    const docs = (await capi('/documents')).filter(d => d.source !== 'creado' && d.status !== 'validado');
+    dataTable('#pendingCaptures', {
+      id: 'pendingCaptures', rows: docs, sort: { key: 'subido', dir: 'desc' },
+      columns: docColumns(['archivo', 'tipo', 'dir', 'tercero', 'numero', 'fecha', 'total', 'lectura']),
+      onRow: d => `openDoc(${d.id})`,
+      empty: `<div class="empty">${icon('circle-check')}<div>No hay capturas pendientes de validar.</div></div>`,
+    });
+  } catch (e) { toast(e.message, true); }
 }
 const dz = $('#dropzone'), fi = $('#fileInput');
 $('#uploadBtn').onclick = () => fi.click();
@@ -392,22 +339,23 @@ async function uploadFiles(files) {
       const d = await capi('/documents', { method: 'POST', body: fd });
       last = d;
       const nf = Object.values(d.extracted?.fields || {}).filter(v => v !== null && v !== '').length;
-      row.innerHTML = `${icon('file-check')}<div class="item-body"><b>${esc(f.name)}</b><p>${typeLabel(d.doc_type)} · ${dirLabel(d.direction)} · ${nf} campos detectados · ${(d.extracted?.ms / 1000).toFixed(1)} s</p></div>${scoreBadge(d.extracted?.score)}<button class="btn sm soft" onclick="openDoc(${d.id})">Revisar</button>`;
+      row.innerHTML = `${icon('file-check')}<div class="item-body"><b>${esc(f.name)}</b><p>${typeLabel(d.doc_type)} · ${dirLabel(d.direction)} · ${nf} campos detectados · ${(d.extracted?.ms / 1000).toFixed(1)} s · pendiente de validar</p></div>${scoreBadge(d.extracted?.score)}<button class="btn sm soft" onclick="openDoc(${d.id})">Revisar y validar</button>`;
     } catch (e) {
       row.innerHTML = `${icon('circle-alert')}<div class="item-body"><b>${esc(f.name)}</b><p style="color:var(--red)">${esc(e.message)}</p></div>`;
     }
   }
   if (files.length === 1 && last) openDoc(last.id);
+  else if ($('#captura').classList.contains('active')) loadCapture();
 }
 
 // ---------------------------------------------------------------- documentos
 async function loadDocs() {
   $('#docsTitle').textContent = docsTitle();
   $('#pageTitle').textContent = docsTitle();
-  $('#docsEyebrow').textContent = docDir === 'emitido' ? 'Ventas' : docDir === 'recibido' ? 'Compras' : 'Archivo';
+  $('#docsEyebrow').textContent = docDir === 'emitido' ? 'Ventas' : docDir === 'recibido' ? 'Compras' : 'Ventas y compras';
   $('#docsSub').textContent = docDir === 'emitido' ? 'Documentos que has emitido tú para tus clientes: facturas, rectificativas, albaranes, pedidos y presupuestos.'
     : docDir === 'recibido' ? 'Documentos que te han enviado tus proveedores: facturas, rectificativas, albaranes, pedidos y presupuestos.'
-    : 'Todos los documentos capturados, recibidos y emitidos.';
+    : 'Ventas emitidas y compras recibidas: su estado de revisión y los datos reconocidos.';
   $('#dirTabs').innerHTML = Object.entries(DIR_TITLES).map(([k, v]) => `<button class="${k === docDir ? 'active' : ''}" onclick="go('documentos',{dir:'${k}'})">${k ? icon(k === 'emitido' ? 'send' : 'inbox') : ''}${k ? v : 'Todos'}</button>`).join('');
   $('#docTabs').innerHTML = Object.entries(TYPE_TITLES).map(([k, v]) => `<button class="${k === docType ? 'active' : ''}" onclick="go('documentos',{type:'${k}'})">${v}</button>`).join('');
   const nb = (t, label, role = '') => `<button class="btn sm ${t === (docType || 'factura') ? 'primary' : ''}" onclick="newSale('${t}'${role ? `,'${role}'` : ''})">${icon('file-plus')}${label}</button>`;
@@ -418,20 +366,60 @@ async function loadDocs() {
   $('#docsTable').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
     const q = new URLSearchParams(); if (docType) q.set('type', docType); if (docDir) q.set('dir', docDir);
-    const docs = await capi('/documents' + (q.toString() ? '?' + q : ''));
-    if (!docs.length) { $('#docsTable').innerHTML = `<div class="empty">${icon('folder-open')}<div>No hay ${docsTitle().toLowerCase()} todavía.</div><button class="btn primary" style="margin-top:12px" onclick="uploadFor(docDir)">${icon('upload')}Subir documentos</button></div>`; return; }
-    const party = docDir ? partyLabel(docDir) : 'Proveedor / cliente';
-    $('#docsTable').innerHTML = `<table class="table"><thead><tr><th>Archivo</th><th>Tipo</th>${docDir ? '' : '<th>Dirección</th>'}<th>${party}</th><th>Número</th><th>Fecha doc.</th><th class="num">Total</th><th>Pago</th><th>Lectura</th><th>Estado</th></tr></thead><tbody>
-      ${docs.map(d => { const f = (d.corrected || d.extracted)?.fields || {}; const t = d.corrected?.doc_type || d.doc_type; return `<tr class="clickable" onclick="openDoc(${d.id})">
-        <td><b>${esc(d.source === 'creado' ? (f.numero || 'Borrador') : d.filename)}</b><div class="muted">${d.source === 'creado' ? 'Creado' : 'Subido'} ${fmtDate(d.created_at)}</div></td>
-        <td>${typeLabel(t)}</td>${docDir ? '' : `<td>${dirBadge(d.direction)}</td>`}<td>${esc(f.proveedor || '—')}</td><td>${esc(f.numero || '—')}</td><td>${esc(f.fecha || '—')}</td>
-        <td class="num">${money(t === 'rectificativa' && f.total ? -Math.abs(f.total) : f.total)}</td><td>${d.doc_state === 'borrador' ? '' : payBadge(d, t)}</td><td>${d.source === 'creado' ? '<span class="badge teal">Creado</span>' : scoreBadge(d.extracted?.score)}</td><td>${d.source === 'creado' ? stateBadge(d.doc_state) : statusBadge(d.status)}</td></tr>`; }).join('')}
-    </tbody></table>`;
+    const [docs] = await Promise.all([capi('/documents' + (q.toString() ? '?' + q : '')), ensureRefs()]);
+    dataTable('#docsTable', {
+      id: 'docs', rows: docs, sort: { key: 'subido', dir: 'desc' },
+      columns: docColumns(['archivo', 'tipo', 'dir', 'tercero', 'numero', 'fecha', 'total', 'pago', 'lectura', 'estado']),
+      onRow: d => `openDoc(${d.id})`,
+      empty: `<div class="empty">${icon('folder-open')}<div>No hay ${docsTitle().toLowerCase()} todavía.</div><button class="btn primary" style="margin-top:12px" onclick="uploadFor(docDir)">${icon('upload')}Subir documentos</button></div>`,
+    });
   } catch (e) { toast(e.message, true); }
 }
 
-// ---------------------------------------------------------------- revisión
-let currentDoc = null;
+// ---------------------------------------------------------------- revisión y validación
+// Proveedores y clientes conocidos (agenda + documentos validados) para reconocer al tercero de la captura
+let PARTIES = [], currentDoc = null, partyPick = null;
+const normNif = v => String(v ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^ES(?=[A-Z0-9]{9}$)/, '') || null;
+const LEGAL_FORMS = new Set(['sl', 'slu', 'sll', 'slne', 'sa', 'sau', 'sc', 'scoop', 'cb', 'scp']);
+function normName(v) {
+  const words = dtNorm(v).replace(/[.,]/g, '').split(/[^a-z0-9]+/).filter(Boolean);
+  while (words.length > 1 && LEGAL_FORMS.has(words.at(-1))) words.pop();
+  return words.join('');
+}
+// Igual que el servidor: mismo NIF/CIF, o mismo nombre si alguno de los dos no tiene NIF
+function findParty(nif, name) {
+  const n = normNif(nif);
+  if (n) { const p = PARTIES.find(x => normNif(x.nif) === n); if (p) return p; }
+  const nm = normName(name);
+  return nm ? PARTIES.find(x => normName(x.name) === nm && (!n || !normNif(x.nif))) || null : null;
+}
+const sameNameOtherNif = (nif, name) => { const n = normNif(nif), nm = normName(name); return n && nm ? PARTIES.find(x => normName(x.name) === nm && normNif(x.nif) && normNif(x.nif) !== n) : null; };
+const roleOf = dir => dir === 'emitido' ? 'cliente' : 'proveedor';
+const kindBadge = k => k === 'cliente' ? '<span class="badge teal">Cliente</span>' : k === 'proveedor' ? '<span class="badge gray">Proveedor</span>' : '<span class="badge green">Cliente y proveedor</span>';
+
+// Desplegable con buscador de texto (nombre o NIF/CIF) sobre los terceros conocidos
+function partyCombo(el, role, onPick, { inline = false, placeholder = 'Buscar por nombre o NIF/CIF…' } = {}) {
+  el.innerHTML = `<div class="combo ${inline ? 'inline' : ''}"><label class="dt-search">${icon('search')}<input placeholder="${esc(placeholder)}" autocomplete="off"></label><div class="combo-list hidden"></div></div>`;
+  const inp = $('input', el), list = $('.combo-list', el);
+  let items = [];
+  const pick = p => { list.classList.add('hidden'); inp.value = p.name; onPick(p); };
+  const show = () => {
+    const q = dtNorm(inp.value).trim(), qn = q.replace(/[^a-z0-9]/g, '');
+    items = PARTIES.filter(p => !q || dtNorm(p.name).includes(q) || (qn && dtNorm(p.nif).includes(qn)))
+      .sort((a, b) => ((b.kind === role || b.kind === 'ambos') - (a.kind === role || a.kind === 'ambos')) || a.name.localeCompare(b.name, 'es')).slice(0, 60);
+    list.innerHTML = items.length ? items.map((p, i) => `<button type="button" data-i="${i}"><span><b>${esc(p.name)}</b> ${kindBadge(p.kind)}</span><span class="muted">${esc(p.nif || 'sin NIF')} · ${p.source === 'agenda' ? 'agenda' : 'historial'}${p.docs ? ` · ${p.docs} doc.` : ''}</span></button>`).join('')
+      : `<div class="muted" style="padding:10px">${PARTIES.length ? 'Sin coincidencias' : 'Todavía no hay proveedores ni clientes en el historial'}</div>`;
+    list.classList.remove('hidden');
+    $$('button', list).forEach(b => b.onmousedown = e => { e.preventDefault(); pick(items[b.dataset.i]); });
+  };
+  inp.onfocus = show; inp.oninput = show;
+  inp.onblur = () => setTimeout(() => list.classList.add('hidden'), 120);
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); if (items[0] && !list.classList.contains('hidden')) pick(items[0]); }
+    if (e.key === 'Escape' && !list.classList.contains('hidden')) { e.stopPropagation(); list.classList.add('hidden'); }
+  };
+}
+
 async function openDoc(id) {
   const peek = await capi('/documents/' + id).catch(() => null);
   if (peek?.source === 'creado') return openEditor(id);
@@ -439,7 +427,7 @@ async function openDoc(id) {
   $('#pageTitle').textContent = 'Revisión de documento';
   $('#revision').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   try {
-    const [d] = await Promise.all([capi('/documents/' + id), locales.length ? null : loadLocalSelect(), CATALOG ? null : capi('/categories').then(c => { CATALOG = c; })]);
+    const [d] = await Promise.all([capi('/documents/' + id), loadLocalSelect(), CATALOG ? null : capi('/categories').then(c => { CATALOG = c; }), capi('/parties').then(p => { PARTIES = p; })]);
     currentDoc = d;
     renderDoc(d);
   } catch (e) { toast(e.message, true); }
@@ -451,6 +439,8 @@ function renderDoc(d) {
   const base = d.corrected || ex;
   const dir = d.direction || ex.direction || 'recibido';
   const t0 = base.doc_type || d.doc_type;
+  const validated = d.status === 'validado';
+  partyPick = null;
   const isPdf = /\.pdf$/i.test(d.filename), isImg = /\.(jpe?g|png|webp|gif|bmp)$/i.test(d.filename);
   const preview = isPdf ? `<iframe class="preview" src="${fileUrl(d.id)}" title="Documento"></iframe>`
     : isImg ? `<img class="preview" src="${fileUrl(d.id)}" alt="Documento">`
@@ -465,6 +455,7 @@ function renderDoc(d) {
       <input name="${k}" value="${esc(shown)}" ${NUM_FIELDS.includes(k) ? 'inputmode="decimal"' : ''} data-orig="${esc(orig ?? '')}"></div>`;
   };
   const checks = (ex.checks || []).map(c => `<div class="check ${c.warn ? 'warn' : c.ok ? 'ok' : 'bad'}">${icon(c.warn ? 'info' : c.ok ? 'circle-check' : 'circle-x')}<span>${esc(c.msg)}</span></div>`).join('');
+  const nBad = (ex.checks || []).filter(c => !c.ok && !c.warn).length;
   const lines = ex.lines?.length ? `<table class="table"><thead><tr><th>Descripción</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Importe</th></tr></thead><tbody>
     ${ex.lines.map(l => `<tr><td>${esc(l.descripcion)}</td><td class="num">${l.cantidad ?? '—'}</td><td class="num">${l.precio !== null && l.precio !== undefined ? money(l.precio) : '—'}</td><td class="num">${money(l.importe)}</td></tr>`).join('')}</tbody></table>`
     : '<div class="empty">No se han detectado líneas de detalle</div>';
@@ -473,7 +464,7 @@ function renderDoc(d) {
     <button class="btn sm" onclick="go('documentos')" style="margin-bottom:14px">${icon('arrow-left')}Volver a documentos</button>
     <div class="eyebrow">${typeLabel(t0)} ${dir === 'emitido' ? 'emitido' : 'recibido'} · ${esc(methodLabel(ex.method))}${ex.engine === 'ia' ? ' · leído con IA' : ''}</div>
     <h2 style="word-break:break-word">${esc(d.filename)}</h2>
-    <p class="sub">${statusBadge(d.status)} ${scoreBadge(ex.score)} ${ex.engine === 'ia' ? `<span class="badge teal">${icon('sparkles')}IA · ${esc(ex.ai_model || '')}</span>` : ''} <span class="muted">Lectura automática${d.ocr_confidence !== null ? ` · confianza OCR ${Math.round(d.ocr_confidence)}%` : ''}${ex.ms ? ` · ${(ex.ms / 1000).toFixed(1)} s` : ''}</span></p>
+    <p class="sub">${statusBadge(d.status)} ${scoreBadge(ex.score)} ${ex.engine === 'ia' ? `<span class="badge teal">${icon('sparkles')}IA · ${esc(ex.ai_model || '')}</span>` : ''} <span class="muted">Lectura automática${d.ocr_confidence !== null ? ` · confianza OCR ${Math.round(d.ocr_confidence)}%` : ''}${ex.ms ? ` · ${(ex.ms / 1000).toFixed(1)} s` : ''}${validated && d.validated_by ? ` · validado por ${esc(d.validated_by)} el ${fmtDate(d.validated_at)}` : ''}</span></p>
     <div class="grid halves">
       <div class="card">
         <div class="tabs"><button class="active" data-tab="prev">Original</button><button data-tab="raw">Texto leído</button><button data-tab="lines">Líneas (${ex.lines?.length || 0})</button></div>
@@ -481,8 +472,20 @@ function renderDoc(d) {
         <div data-pane="raw" class="hidden"><pre class="raw">${esc(d.raw_text || '(sin texto)')}</pre></div>
         <div data-pane="lines" class="hidden table-wrap">${lines}</div>
       </div>
-      <form class="card" id="reviewForm">
+      <form class="card" id="reviewForm" novalidate>
         <div class="card-head"><div><div class="card-title">Datos reconocidos</div><div class="muted">Corrige lo que no esté bien y valida. Los campos corregidos se marcan en naranja.</div></div></div>
+        <div class="review-top">
+          <div class="card-title" style="margin-bottom:4px">Comprobaciones automáticas ${nBad ? `<span class="badge red">${nBad} con error</span>` : (ex.checks || []).length ? '<span class="badge green">Todo cuadra</span>' : ''}</div>
+          <div class="checks">${checks || '<div class="muted">—</div>'}</div>
+          <div class="actions">
+            <button class="btn primary" type="submit">${icon('circle-check')}${validated ? 'Guardar corrección' : 'Validar datos'}</button>
+            <button class="btn" type="button" onclick="reanalyze(${d.id})">${icon('refresh-cw')}Volver a leer</button>
+            <button class="btn danger" type="button" onclick="deleteDoc(${d.id})">${icon('trash')}Eliminar</button>
+            ${validated ? `<a class="btn" href="${recordUrl(d.id)}">${icon('file-text')}Registro en texto</a>` : ''}
+          </div>
+          <label class="confirm-line"><input type="checkbox" name="confirm_personal"> <span>He revisado <b>personalmente</b> estos datos con el documento original. Al validar quedan registrados el archivo y el registro en texto.</span></label>
+        </div>
+        <div class="party-box" id="partyBox"></div>
         <div class="form-grid">
           <div class="field"><label>Tipo de documento</label><select name="doc_type">${Object.entries(DOC_TYPES).map(([k, v]) => `<option value="${k}" ${k === t0 ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
           <div class="field"><label>Recibido o emitido</label><select name="direction"><option value="recibido" ${dir === 'recibido' ? 'selected' : ''}>Recibido (compra, gasto)</option><option value="emitido" ${dir === 'emitido' ? 'selected' : ''}>Emitido por mí (venta, ingreso)</option></select></div>
@@ -490,13 +493,7 @@ function renderDoc(d) {
           <div class="field"><label>Pago</label><select name="paid"><option value="0" ${d.paid ? '' : 'selected'}>${dir === 'emitido' ? 'Pendiente de cobro' : 'Pendiente de pago'}</option><option value="1" ${d.paid ? 'selected' : ''}>${dir === 'emitido' ? 'Cobrada' : 'Pagada'}</option></select></div>
           <div class="field full"><label>Local</label><select name="local_id"><option value="">Sin asignar</option>${locales.map(l => `<option value="${l.id}" ${l.id === d.local_id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></div>
           ${Object.keys(FIELD_LABELS).map(fieldInput).join('')}
-          <div class="field full"><label>Nota de la prueba (opcional)</label><input name="note" value="${esc(d.corrected?.note || '')}" placeholder="Ej.: foto con poca luz, factura de dos páginas…"></div>
-        </div>
-        <div style="margin-top:14px"><div class="card-title" style="margin-bottom:4px">Comprobaciones automáticas</div>${checks || '<div class="muted">—</div>'}</div>
-        <div class="actions" style="margin-top:16px">
-          <button class="btn primary" type="submit">${icon('circle-check')}${d.status === 'validado' ? 'Guardar corrección' : 'Validar datos'}</button>
-          <button class="btn" type="button" onclick="reanalyze(${d.id})">${icon('refresh-cw')}Volver a leer</button>
-          <button class="btn danger" type="button" onclick="deleteDoc(${d.id})">${icon('trash')}Eliminar</button>
+          <div class="field full"><label>Nota (opcional)</label><input name="note" value="${esc(d.corrected?.note || '')}" placeholder="Ej.: foto con poca luz, factura de dos páginas…"></div>
         </div>
       </form>
     </div>
@@ -512,7 +509,7 @@ function renderDoc(d) {
     const same = NUM_FIELDS.includes(inp.name) ? (o === '' && v === '') || (o !== '' && v !== '' && Math.abs(Number(o) - Number(v.replace(',', '.'))) < 0.011) : o.trim() === v;
     inp.closest('.field').classList.toggle('changed', !same);
   };
-  $$('#reviewForm [data-orig]').forEach(inp => { markChanged(inp); inp.oninput = () => markChanged(inp); });
+  $$('#reviewForm [data-orig]').forEach(inp => { markChanged(inp); inp.oninput = () => { markChanged(inp); if (inp.name === 'proveedor' || inp.name === 'nif') { partyPick = null; paintParty(); } }; });
   // Al cambiar recibido/emitido cambian las categorías y el nombre del tercero
   $('#reviewForm [name=direction]').onchange = e => {
     const nd = e.target.value, f = $('#reviewForm');
@@ -521,21 +518,95 @@ function renderDoc(d) {
     f.paid.options[1].text = nd === 'emitido' ? 'Cobrada' : 'Pagada';
     $('#reviewForm [data-key=proveedor] label').firstChild.textContent = nd === 'emitido' ? 'Cliente' : 'Proveedor / emisor';
     $('#reviewForm [data-key=nif] label').firstChild.textContent = `NIF / CIF del ${nd === 'emitido' ? 'cliente' : 'proveedor'}`;
+    paintParty();
     toast('Pulsa "Volver a leer" si el ' + (nd === 'emitido' ? 'cliente' : 'proveedor') + ' no es el correcto');
   };
   $('#reviewForm [name=doc_type]').onchange = e => { $('#reviewForm [name=paid]').closest('.field').classList.toggle('hidden', !isInvoice(e.target.value)); };
   $('#reviewForm [name=paid]').closest('.field').classList.toggle('hidden', !isInvoice(t0));
-  $('#reviewForm').onsubmit = async e => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    const fields = {};
-    for (const k of Object.keys(FIELD_LABELS)) fields[k] = data[k];
-    try {
-      const saved = await capi(`/documents/${d.id}/validate`, { method: 'PUT', body: { doc_type: data.doc_type, direction: data.direction, category: data.category, paid: data.paid === '1', local_id: data.local_id, note: data.note, fields } });
-      currentDoc = saved; renderDoc(saved);
-      const changed = $$('#reviewForm .field.changed').length;
-      toast(changed ? `Validado con ${changed} corrección${changed > 1 ? 'es' : ''}` : 'Validado: todos los campos eran correctos');
-    } catch (err) { toast(err.message, true); }
+  paintParty();
+  $('#reviewForm').onsubmit = e => { e.preventDefault(); submitReview(d); };
+}
+
+// Recuadro del tercero: existente (se guarda contra él) o nuevo (pedirá confirmación), con buscador para corregir
+function setPartyFields(p) {
+  const f = $('#reviewForm');
+  f.proveedor.value = p.name; f.nif.value = p.nif || f.nif.value;
+  ['proveedor', 'nif'].forEach(k => f[k].dispatchEvent(new Event('input')));
+  partyPick = p;
+  paintParty();
+}
+function paintParty() {
+  const f = $('#reviewForm'), box = $('#partyBox');
+  if (!f || !box) return;
+  const role = roleOf(f.direction.value), Role = role === 'cliente' ? 'Cliente' : 'Proveedor';
+  const name = f.proveedor.value.trim(), nif = f.nif.value.trim();
+  const match = partyPick || findParty(nif, name);
+  const other = !match && sameNameOtherNif(nif, name);
+  box.className = 'party-box ' + (match ? 'known' : name ? 'new' : '');
+  const how = match && !partyPick ? (normNif(nif) && normNif(match.nif) === normNif(nif) ? 'coincide el NIF/CIF' : 'coincide el nombre') : 'elegido por ti';
+  box.innerHTML = `<div class="party-head">${icon(match ? 'user-check' : name ? 'user-plus' : 'user-round-search')}<div style="flex:1;min-width:0">
+      ${match ? `<b>${Role} existente: ${esc(match.name)}</b><div class="muted">${esc(match.nif || 'sin NIF')} · ${match.source === 'agenda' ? 'en tu agenda' : 'en tu historial'}${match.docs ? ` · ${match.docs} documento${match.docs > 1 ? 's' : ''}` : ''} · ${how}. El documento se guardará contra esta ficha.</div>`
+      : name ? `<b>${Role} nuevo: ${esc(name)}</b><div class="muted">${nif ? `El NIF/CIF ${esc(nif)} no` : 'No'} coincide con ningún ${role} de tu historial. Al validar se te pedirá confirmar que se crea uno nuevo.</div>
+        ${other ? `<div class="check warn">${icon('triangle-alert')}<span>Ya tienes «${esc(other.name)}» con otro NIF/CIF (${esc(other.nif)}). Comprueba si la captura leyó mal el NIF.</span></div>` : ''}`
+      : `<b>Sin ${role}</b><div class="muted">No se ha detectado el ${role}. Escríbelo o búscalo en tu historial.</div>`}
+    </div></div>
+    <div style="margin-top:10px"><div class="muted" style="margin-bottom:6px">¿La captura leyó mal el ${role}? Búscalo en tu historial:</div><div id="partyCombo"></div></div>`;
+  partyCombo($('#partyCombo'), role, setPartyFields);
+}
+
+async function submitReview(d) {
+  const f = $('#reviewForm');
+  if (!f.confirm_personal.checked) {
+    f.confirm_personal.closest('.confirm-line').scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return toast('Marca la casilla para confirmar que has revisado personalmente los datos', true);
+  }
+  const data = Object.fromEntries(new FormData(f));
+  const fields = {};
+  for (const k of Object.keys(FIELD_LABELS)) fields[k] = data[k];
+  const body = { doc_type: data.doc_type, direction: data.direction, category: data.category, paid: data.paid === '1', local_id: data.local_id, note: data.note, fields };
+  const name = (fields.proveedor || '').trim();
+  const match = partyPick || findParty(fields.nif, name);
+  if (name && !match) return confirmNewParty(d, body);
+  if (match?.contact_id) body.party = { contact_id: match.contact_id };
+  await sendValidation(d, body);
+}
+async function sendValidation(d, body) {
+  try {
+    const saved = await capi(`/documents/${d.id}/validate`, { method: 'PUT', body });
+    const changed = $$('#reviewForm .field.changed').length;
+    PARTIES = await capi('/parties').catch(() => PARTIES);
+    currentDoc = saved; renderDoc(saved);
+    toast(`Validado y registrado${changed ? ` con ${changed} corrección${changed > 1 ? 'es' : ''}` : ''}: archivo y registro en texto guardados`);
+  } catch (err) {
+    if (err.data?.needs_party_confirmation) return confirmNewParty(d, body);
+    toast(err.message, true);
+  }
+}
+// Confirmación antes de crear un proveedor/emisor (o cliente) nuevo, con buscador por si la captura leyó mal
+function confirmNewParty(d, body) {
+  const role = roleOf(body.direction), Role = role === 'cliente' ? 'cliente' : 'proveedor / emisor';
+  let chosen = null;
+  showBox(`<div class="modal-head"><h3>¿Crear un ${Role} nuevo?</h3><button type="button" class="icon-btn" data-close title="Cerrar">${icon('x')}</button></div>
+    <div class="party-box new"><div class="party-head">${icon('user-plus')}<div><b>${esc(body.fields.proveedor)}</b><div class="muted">NIF / CIF: ${esc(body.fields.nif || 'sin NIF')}</div></div></div></div>
+    <p class="muted" style="margin:0 0 12px">No hay ningún ${role} con este NIF/CIF ni con este nombre en tu historial. Si la captura lo leyó mal, búscalo y elígelo; si no, se creará una ficha nueva en Clientes y proveedores.</p>
+    <div class="field"><label>Elegir uno existente</label><div id="confirmCombo"></div></div>
+    <div id="confirmChosen" class="muted" style="margin-top:8px"></div>
+    <div class="actions" style="margin-top:18px">
+      <button class="btn primary" id="cpNew">${icon('user-plus')}Crear ${role} nuevo y validar</button>
+      <button class="btn hidden" id="cpUse">${icon('user-check')}Usar el elegido y validar</button>
+      <button class="btn" data-close>Cancelar</button>
+    </div>`);
+  partyCombo($('#confirmCombo'), role, p => {
+    chosen = p;
+    $('#confirmChosen').innerHTML = `Elegido: <b>${esc(p.name)}</b> · ${esc(p.nif || 'sin NIF')}`;
+    $('#cpUse').classList.remove('hidden'); $('#cpUse').classList.add('primary'); $('#cpNew').classList.remove('primary');
+  }, { inline: true });
+  $('#cpNew').onclick = async () => { closeModal(); await sendValidation(d, { ...body, party: { create: true } }); };
+  $('#cpUse').onclick = async () => {
+    if (!chosen) return;
+    closeModal();
+    const fields = { ...body.fields, proveedor: chosen.name, nif: chosen.nif || body.fields.nif };
+    await sendValidation(d, { ...body, fields, party: chosen.contact_id ? { contact_id: chosen.contact_id } : {} });
   };
 }
 const methodLabel = m => ({ 'pdf-texto': 'PDF con texto', 'pdf-ocr': 'PDF escaneado (OCR)', ocr: 'Imagen (OCR)', texto: 'Texto', error: 'Error de lectura' })[m] || 'Lectura';
@@ -543,43 +614,13 @@ const methodLabel = m => ({ 'pdf-texto': 'PDF con texto', 'pdf-ocr': 'PDF escane
 async function reanalyze(id) {
   toast('Volviendo a leer el documento…');
   const direction = $('#reviewForm [name=direction]')?.value;
-  try { const d = await capi(`/documents/${id}/reanalyze`, { method: 'POST', body: { direction } }); renderDoc(d); toast('Lectura actualizada'); }
+  try { const d = await capi(`/documents/${id}/reanalyze`, { method: 'POST', body: { direction } }); currentDoc = d; renderDoc(d); toast('Lectura actualizada'); }
   catch (e) { toast(e.message, true); }
 }
 async function deleteDoc(id) {
-  if (!confirm('¿Eliminar este documento y su archivo?')) return;
+  if (!confirm('¿Eliminar este documento, su archivo y su registro?')) return;
   try { await capi('/documents/' + id, { method: 'DELETE' }); toast('Documento eliminado'); go('documentos'); }
   catch (e) { toast(e.message, true); }
-}
-
-// ---------------------------------------------------------------- precisión
-async function loadAccuracy() {
-  const el = $('#accuracy');
-  el.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
-  try {
-    const a = await capi('/accuracy');
-    if (!a.documents) { el.innerHTML = `<div class="card"><div class="empty">${icon('target')}<div>Todavía no has validado ningún documento.</div><p>Sube documentos reales en <b>Captura inteligente</b>, revisa los datos y pulsa <b>Validar</b>.</p><button class="btn primary" onclick="go('captura')">${icon('upload')}Empezar pruebas</button></div></div>`; return; }
-    const keys = ['doc_type', 'direction', ...Object.keys(FIELD_LABELS)];
-    const label = k => k === 'doc_type' ? 'Tipo de documento' : k === 'direction' ? 'Recibido / emitido' : FIELD_LABELS[k];
-    const rows = keys.map(k => { const p = a.per[k]; const n = p.ok + p.wrong + p.missing; return { k, ...p, n, rate: n ? p.ok / n * 100 : null }; });
-    const cell = s => ({ ok: `<span class="badge green" title="Correcto">${icon('check')}</span>`, wrong: `<span class="badge red" title="Corregido">${icon('x')}</span>`, missing: `<span class="badge amber" title="No detectado">${icon('minus')}</span>`, extra: `<span class="badge gray" title="Sobrante">+</span>` })[s] || '<span class="muted">·</span>';
-    el.innerHTML = `
-      <div class="grid stats">
-        <div class="card"><div class="stat-top"><span>Precisión global</span><span class="stat-icon">${icon('target')}</span></div><div class="stat-value">${pct(a.overall)}</div><div class="stat-foot">Campos correctos sin tocar</div></div>
-        <div class="card"><div class="stat-top"><span>Documentos validados</span><span class="stat-icon">${icon('file-check')}</span></div><div class="stat-value">${a.documents}</div><div class="stat-foot">Muestra de la prueba</div></div>
-        <div class="card"><div class="stat-top"><span>Mejor campo</span><span class="stat-icon">${icon('trending-up')}</span></div><div class="stat-value" style="font-size:20px">${esc(label(rows.filter(r => r.n).sort((x, y) => y.rate - x.rate)[0]?.k))}</div><div class="stat-foot">${pct(Math.round(rows.filter(r => r.n).sort((x, y) => y.rate - x.rate)[0]?.rate * 10) / 10)}</div></div>
-        <div class="card"><div class="stat-top"><span>Campo más débil</span><span class="stat-icon">${icon('trending-down')}</span></div><div class="stat-value" style="font-size:20px">${esc(label(rows.filter(r => r.n).sort((x, y) => x.rate - y.rate)[0]?.k))}</div><div class="stat-foot">${pct(Math.round(rows.filter(r => r.n).sort((x, y) => x.rate - y.rate)[0]?.rate * 10) / 10)}</div></div>
-      </div>
-      <div class="card" style="margin-bottom:16px"><div class="card-title" style="margin-bottom:12px">Por campo</div><div class="table-wrap"><table class="table">
-        <thead><tr><th>Campo</th><th style="width:30%">Acierto</th><th class="num">Correcto</th><th class="num">Corregido</th><th class="num">No detectado</th><th class="num">Sobrante</th></tr></thead><tbody>
-        ${rows.map(r => `<tr><td><b>${label(r.k)}</b></td><td>${r.n ? `<div style="display:flex;align-items:center;gap:8px"><div class="meter" style="flex:1"><span style="width:${r.rate}%;background:${r.rate >= 85 ? 'var(--green)' : r.rate >= 60 ? '#f59e0b' : 'var(--red)'}"></span></div><span style="min-width:44px;text-align:right">${pct(Math.round(r.rate * 10) / 10)}</span></div>` : '<span class="muted">sin datos</span>'}</td>
-          <td class="num">${r.ok}</td><td class="num">${r.wrong}</td><td class="num">${r.missing}</td><td class="num">${r.extra}</td></tr>`).join('')}
-        </tbody></table></div></div>
-      <div class="card"><div class="card-title" style="margin-bottom:12px">Por documento</div><div class="table-wrap"><table class="table">
-        <thead><tr><th>Documento</th>${keys.map(k => `<th title="${esc(label(k))}">${esc(label(k).split(' ')[0])}</th>`).join('')}</tr></thead><tbody>
-        ${a.detail.map(r => `<tr class="clickable" onclick="openDoc(${r.id})"><td><b>${esc(r.filename)}</b></td>${keys.map(k => `<td>${cell(r.fields[k])}</td>`).join('')}</tr>`).join('')}
-        </tbody></table></div></div>`;
-  } catch (e) { toast(e.message, true); }
 }
 
 // ---------------------------------------------------------------- locales y empleados
@@ -587,15 +628,35 @@ let employees = [];
 async function loadLocales() {
   try {
     [locales, employees] = await Promise.all([capi('/locales'), capi('/employees')]);
-    $('#localesList').innerHTML = locales.length ? `<div class="grid three">${locales.map(l => `
-      <div class="item"><span class="stat-icon">${icon('store')}</span><div class="item-body"><b>${esc(l.name)}</b><p>${esc([l.address, l.city].filter(Boolean).join(', ') || 'Sin dirección')} · ${l.employees} empleado${l.employees === 1 ? '' : 's'}</p></div>
-        <button class="icon-btn" title="Editar" onclick="editLocal(${l.id})">${icon('pencil')}</button></div>`).join('')}</div>`
-      : `<div class="empty">${icon('store')}<div>Añade tu primer local.</div></div>`;
-    $('#employeesTable').innerHTML = employees.length ? `<table class="table"><thead><tr><th>Nombre</th><th>Puesto</th><th>Local</th><th>Contacto</th><th>Estado</th><th></th></tr></thead><tbody>
-      ${employees.map(e => `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">${esc(initials(e.name))}</div><b>${esc(e.name)}</b></div></td><td>${esc(e.position || '—')}</td><td>${esc(e.local_name || '—')}</td>
-        <td class="muted">${esc([e.email, e.phone].filter(Boolean).join(' · ') || '—')}</td><td>${e.active ? '<span class="badge green">Activo</span>' : '<span class="badge gray">Baja</span>'}</td>
-        <td><button class="icon-btn" title="Editar" onclick="editEmployee(${e.id})">${icon('pencil')}</button></td></tr>`).join('')}
-    </tbody></table>` : `<div class="empty">${icon('users')}<div>Sin empleados todavía.</div></div>`;
+    dataTable('#localesList', {
+      id: 'locales', rows: locales, sort: { key: 'name', dir: 'asc' },
+      columns: [
+        { key: 'name', label: 'Local', html: l => `<div style="display:flex;align-items:center;gap:10px"><span class="stat-icon">${icon('store')}</span><b>${esc(l.name)}</b></div>` },
+        { key: 'address', label: 'Dirección' },
+        { key: 'city', label: 'Localidad' },
+        { key: 'employees', label: 'Empleados', type: 'number', cls: 'num' },
+        { key: 'created_at', label: 'Alta', type: 'date' },
+        { key: 'edit', label: '', sort: false, filter: false, get: () => '', html: l => `<button class="icon-btn" title="Editar" onclick="event.stopPropagation();editLocal(${l.id})">${icon('pencil')}</button>` },
+      ],
+      onRow: l => `editLocal(${l.id})`,
+      empty: `<div class="empty">${icon('store')}<div>Añade tu primer local.</div></div>`,
+    });
+    dataTable('#employeesTable', {
+      id: 'employees', rows: employees, sort: { key: 'name', dir: 'asc' },
+      columns: [
+        { key: 'name', label: 'Nombre', html: e => `<div style="display:flex;align-items:center;gap:10px"><div class="avatar">${esc(initials(e.name))}</div><b>${esc(e.name)}</b></div>` },
+        { key: 'position', label: 'Puesto', type: 'enum' },
+        { key: 'local', label: 'Local', type: 'enum', get: e => e.local_name || 'Sin asignar' },
+        { key: 'email', label: 'Email' },
+        { key: 'phone', label: 'Teléfono' },
+        { key: 'active', label: 'Estado', type: 'enum', get: e => e.active ? 'activo' : 'baja', label_of: v => v === 'activo' ? 'Activo' : 'De baja',
+          html: e => e.active ? '<span class="badge green">Activo</span>' : '<span class="badge gray">Baja</span>' },
+        { key: 'created_at', label: 'Alta', type: 'date', hidden: true },
+        { key: 'edit', label: '', sort: false, filter: false, get: () => '', html: e => `<button class="icon-btn" title="Editar" onclick="event.stopPropagation();editEmployee(${e.id})">${icon('pencil')}</button>` },
+      ],
+      onRow: e => `editEmployee(${e.id})`,
+      empty: `<div class="empty">${icon('users')}<div>Sin empleados todavía.</div></div>`,
+    });
   } catch (e) { toast(e.message, true); }
 }
 
@@ -635,25 +696,6 @@ async function deleteEmployee(id) {
   try { await capi('/employees/' + id, { method: 'DELETE' }); closeModal(); toast('Empleado eliminado'); loadLocales(); } catch (e) { toast(e.message, true); }
 }
 
-// ---------------------------------------------------------------- configuración
-async function loadCompany() {
-  const c = await capi('/company').catch(e => toast(e.message, true));
-  if (!c) return;
-  $('#companyForm').innerHTML = `<div class="card-title" style="margin-bottom:14px">Empresa</div><div class="form-grid">
-    ${field('name', 'Nombre o razón social', { value: c.name, required: true, full: true })}${field('nif', 'NIF / CIF', { value: c.nif })}${field('phone', 'Teléfono', { value: c.phone })}${field('email', 'Email', { value: c.email, type: 'email', full: true })}
-    ${field('address', 'Dirección', { value: c.address, full: true })}${field('postal_city', 'Código postal y localidad', { value: c.postal_city, full: true })}
-    ${field('iban', 'IBAN para cobros', { value: c.iban, full: true })}${field('doc_footer', 'Pie de los documentos (registro mercantil, condiciones…)', { value: c.doc_footer, full: true })}
-    </div><div class="actions" style="margin-top:16px"><button class="btn primary" type="submit">${icon('check')}Guardar</button></div>`;
-}
-$('#companyForm').onsubmit = async e => {
-  e.preventDefault();
-  try { await capi('/company', { method: 'PATCH', body: Object.fromEntries(new FormData(e.target)) }); toast('Datos guardados'); init(); } catch (err) { toast(err.message, true); }
-};
-$('#pwdForm').onsubmit = async e => {
-  e.preventDefault();
-  try { await api('/api/me/password', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); toast('Contraseña actualizada'); } catch (err) { toast(err.message, true); }
-};
-
 // ---------------------------------------------------------------- contabilidad
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 let acc = null, accView = 'chart';
@@ -661,7 +703,6 @@ function accQuery() {
   const q = new URLSearchParams({ year: $('#accYear').value || new Date().getFullYear() });
   const p = $('#accPeriod').value;
   if (p.startsWith('q')) q.set('quarter', p.slice(1)); else if (p.startsWith('m')) q.set('month', p.slice(1));
-  if ($('#accValidated').checked) q.set('validated', '1');
   return q;
 }
 function initAccFilters() {
@@ -669,7 +710,7 @@ function initAccFilters() {
   $('#accPeriod').innerHTML = `<option value="">Todo el año</option>${[1, 2, 3, 4].map(q => `<option value="q${q}">${q}.º trimestre</option>`).join('')}${MONTHS.map((m, i) => `<option value="m${i + 1}">${m}</option>`).join('')}`;
   const y = new Date().getFullYear();
   $('#accYear').innerHTML = `<option>${y}</option>`;
-  ['#accYear', '#accPeriod', '#accValidated'].forEach(sel => $(sel).onchange = loadAccounting);
+  ['#accYear', '#accPeriod'].forEach(sel => $(sel).onchange = loadAccounting);
   $$('#contabilidad [data-view]').forEach(b => b.onclick = () => { accView = b.dataset.view; $$('#contabilidad [data-view]').forEach(x => x.classList.toggle('active', x === b)); renderMonthly(); });
   addEventListener('resize', () => { if ($('#contabilidad').classList.contains('active') && acc) renderMonthly(); });
 }
@@ -688,7 +729,7 @@ function periodName(p) { return p.month ? `${MONTHS[p.month - 1]} ${p.year}` : p
 function renderAccounting() {
   const r = acc, t = r.totals, c = r.counts;
   const notes = [];
-  if (c.sinValidar) notes.push(`${c.sinValidar} factura${c.sinValidar > 1 ? 's' : ''} del periodo sin validar: sus importes son los leídos automáticamente.`);
+  if (r.pendingCaptures) notes.push(`${r.pendingCaptures} captura${r.pendingCaptures > 1 ? 's' : ''} pendiente${r.pendingCaptures > 1 ? 's' : ''} de validar: no cuenta${r.pendingCaptures > 1 ? 'n' : ''} hasta que la${r.pendingCaptures > 1 ? 's' : ''} valides. <a href="#" onclick="go('captura');return false">Validar ahora</a>`);
   if (c.incompletos) notes.push(`${c.incompletos} factura${c.incompletos > 1 ? 's' : ''} sin importes: no se han podido sumar. Revísalas.`);
   if (c.sinFecha) notes.push(`${c.sinFecha} factura${c.sinFecha > 1 ? 's' : ''} sin fecha: se usa la fecha de subida.`);
   $('#accNotice').innerHTML = notes.length ? `<div class="notice">${icon('info')}<div>${notes.join('<br>')}</div></div>` : '';
@@ -712,26 +753,56 @@ function renderAccounting() {
       <td class="num"><b>${money(q.resultado)}</b><div class="muted">${q.resultado > 0 ? 'a ingresar' : q.resultado < 0 ? 'a compensar' : ''}</div></td><td class="num">${q.retencionesPracticadas ? money(q.retencionesPracticadas) : '—'}</td></tr>`).join('')}
     </tbody></table>${r.retenciones.soportadas ? `<p class="muted" style="margin:10px 0 0">Te han retenido ${money(r.retenciones.soportadas)} de IRPF en tus facturas emitidas del periodo (a cuenta de tu impuesto).</p>` : ''}`;
   // Pendientes
-  const pend = (p, kind) => p.items.length ? `<div style="display:flex;gap:16px;margin-bottom:10px;font-size:13px"><span>Total <b>${money(p.total)}</b></span>${p.vencido ? `<span class="badge red">${icon('circle-alert')}${money(p.vencido)} vencido</span>` : ''}</div>
-    <div class="list">${p.items.slice(0, 8).map(e => `<div class="item"><div class="item-body" style="cursor:pointer" onclick="openDoc(${e.id})"><b>${esc(e.tercero || 'Sin nombre')}</b><p>${esc(e.numero || 'Sin número')} · ${e.due ? 'vence ' + e.due.split('-').reverse().join('/') : 'fecha ' + e.date.split('-').reverse().join('/')}</p></div>
-      ${e.overdue ? '<span class="badge red">Vencida</span>' : ''}<b style="font-variant-numeric:tabular-nums">${money(e.total)}</b><button class="btn sm soft" onclick="togglePaid(${e.id}, 1, loadAccounting)">${icon('check')}${kind === 'ingreso' ? 'Cobrada' : 'Pagada'}</button></div>`).join('')}</div>
-    ${p.items.length > 8 ? `<p class="muted" style="margin:8px 0 0">y ${p.items.length - 8} más</p>` : ''}`
-    : `<div class="empty">${icon('circle-check')}<div>Nada pendiente</div></div>`;
-  $('#accCobrar').innerHTML = pend(r.pending.porCobrar, 'ingreso');
-  $('#accPagar').innerHTML = pend(r.pending.porPagar, 'gasto');
+  const pend = (p, kind, el) => {
+    $(el + 'Sum').innerHTML = p.items.length ? `<div style="display:flex;gap:16px;margin-bottom:10px;font-size:13px"><span>Total <b>${money(p.total)}</b></span>${p.vencido ? `<span class="badge red">${icon('circle-alert')}${money(p.vencido)} vencido</span>` : ''}</div>` : '';
+    dataTable(el, {
+      id: el, rows: p.items, limit: 8, sort: { key: 'due', dir: 'asc' },
+      columns: [
+        { key: 'tercero', label: kind === 'ingreso' ? 'Cliente' : 'Proveedor', html: e => `<b>${esc(e.tercero || 'Sin nombre')}</b>` },
+        { key: 'numero', label: 'Número' },
+        { key: 'date', label: 'Fecha', type: 'date' },
+        { key: 'due', label: 'Vencimiento', type: 'date' },
+        { key: 'overdue', label: 'Situación', type: 'enum', get: e => e.overdue ? 'vencida' : 'en plazo', label_of: v => v === 'vencida' ? 'Vencida' : 'En plazo',
+          html: e => e.overdue ? '<span class="badge red">Vencida</span>' : '<span class="badge gray">En plazo</span>' },
+        { key: 'total', label: 'Total', type: 'money', cls: 'num' },
+        { key: 'act', label: '', sort: false, filter: false, get: () => '', html: e => `<button class="btn sm soft" onclick="event.stopPropagation();togglePaid(${e.id}, 1, loadAccounting)">${icon('check')}${kind === 'ingreso' ? 'Cobrada' : 'Pagada'}</button>` },
+      ],
+      onRow: e => `openDoc(${e.id})`,
+      empty: `<div class="empty">${icon('circle-check')}<div>Nada pendiente</div></div>`,
+    });
+  };
+  pend(r.pending.porCobrar, 'ingreso', '#accCobrar');
+  pend(r.pending.porPagar, 'gasto', '#accPagar');
   const top = (list, cls) => { const m = Math.max(...list.map(x => x.amount), 1); return list.length ? list.map(x => `<div class="hbar"><span>${esc(x.name)} <span class="muted">(${x.count})</span></span><div class="track"><div class="fill ${cls}" style="width:${Math.max(0, x.amount) / m * 100}%"></div></div><span class="val">${money(x.amount)}</span></div>`).join('') : '<div class="empty">Sin datos en el periodo</div>'; };
   $('#accClientes').innerHTML = top(r.top.clientes, 'in');
   $('#accProveedores').innerHTML = top(r.top.proveedores, '');
   // Libro
-  const catName = k => (CATALOG ? [...CATALOG.gasto, ...CATALOG.ingreso].find(x => x[0] === k)?.[1] : k) || '—';
-  $('#accBook').innerHTML = r.entries.length ? `<table class="table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Tercero / concepto</th><th>Categoría</th><th class="num">Base</th><th class="num">IVA</th><th class="num">Total</th><th>Estado</th></tr></thead><tbody>
-    ${r.entries.map(e => `<tr class="clickable" onclick="${e.source === 'doc' ? `openDoc(${e.id})` : `editEntry(${e.id})`}">
-      <td>${e.date.split('-').reverse().join('/')}${e.dateMissing ? ' <span class="muted">(subida)</span>' : ''}</td>
-      <td>${e.kind === 'ingreso' ? `<span class="badge teal">${icon('arrow-up-right')}Ingreso</span>` : `<span class="badge gray">${icon('arrow-down-left')}Gasto</span>`}</td>
-      <td><b>${esc(e.tercero || e.concepto)}</b><div class="muted">${e.source === 'doc' ? `${esc(e.concepto)} ${esc(e.numero || '')}${e.validated ? '' : ' · sin validar'}` : 'Apunte manual' + (e.tercero ? ' · ' + esc(e.concepto) : '')}</div></td>
-      <td>${esc(catName(e.category))}</td><td class="num">${e.base === null ? '—' : money(e.base)}</td><td class="num">${money(e.iva)}</td><td class="num">${e.total === null ? '—' : money(e.total)}</td>
-      <td>${e.kind === 'ingreso' ? (e.paid ? '<span class="badge green">Cobrado</span>' : '<span class="badge amber">Por cobrar</span>') : (e.paid ? '<span class="badge green">Pagado</span>' : '<span class="badge amber">Por pagar</span>')}</td></tr>`).join('')}
-    </tbody></table>` : `<div class="empty">${icon('calculator')}<div>No hay apuntes en ${periodName(r.period)}.</div><p>Sube facturas emitidas y recibidas, o añade un apunte manual.</p></div>`;
+  dataTable('#accBook', {
+    id: 'accBook', rows: r.entries, sort: { key: 'date', dir: 'desc' },
+    columns: [
+      { key: 'date', label: 'Fecha', type: 'date', html: e => `${isoToEs(e.date)}${e.dateMissing ? ' <span class="muted">(subida)</span>' : ''}` },
+      { key: 'kind', label: 'Tipo', type: 'enum', label_of: v => v === 'ingreso' ? 'Ingreso' : 'Gasto',
+        html: e => e.kind === 'ingreso' ? `<span class="badge teal">${icon('arrow-up-right')}Ingreso</span>` : `<span class="badge gray">${icon('arrow-down-left')}Gasto</span>` },
+      { key: 'tercero', label: 'Tercero / concepto', get: e => e.tercero || e.concepto,
+        html: e => `<b>${esc(e.tercero || e.concepto)}</b><div class="muted">${e.source === 'doc' ? `${esc(e.concepto)} ${esc(e.numero || '')}` : 'Apunte manual' + (e.tercero ? ' · ' + esc(e.concepto) : '')}</div>` },
+      { key: 'concepto', label: 'Concepto', hidden: true },
+      { key: 'numero', label: 'Número', hidden: true },
+      { key: 'nif', label: 'NIF / CIF', hidden: true },
+      { key: 'source', label: 'Origen', type: 'enum', hidden: true, label_of: v => v === 'doc' ? 'Documento' : 'Apunte manual' },
+      { key: 'category', label: 'Categoría', type: 'enum', label_of: catLabel },
+      { key: 'base', label: 'Base', type: 'money', cls: 'num' },
+      { key: 'iva', label: 'IVA', type: 'money', cls: 'num' },
+      { key: 'retencion', label: 'Retención', type: 'money', cls: 'num', hidden: true },
+      { key: 'total', label: 'Total', type: 'money', cls: 'num' },
+      { key: 'due', label: 'Vencimiento', type: 'date', hidden: true },
+      { key: 'paid', label: 'Estado', type: 'enum', get: e => e.paid ? 'si' : 'no', label_of: v => v === 'si' ? 'Pagado / cobrado' : 'Pendiente',
+        html: e => e.kind === 'ingreso' ? (e.paid ? '<span class="badge green">Cobrado</span>' : '<span class="badge amber">Por cobrar</span>') : (e.paid ? '<span class="badge green">Pagado</span>' : '<span class="badge amber">Por pagar</span>') },
+    ],
+    onRow: e => e.source === 'doc' ? `openDoc(${e.id})` : `editEntry(${e.id})`,
+    footer: list => { const sum = k => list.reduce((a, e) => a + (e[k] || 0) * (e.kind === 'gasto' ? -1 : 1), 0);
+      return `<tr><td colspan="4"><b>Resultado de las filas visibles</b> <span class="muted">(ingresos − gastos)</span></td><td class="num"><b>${money(sum('base'))}</b></td><td class="num"><b>${money(sum('iva'))}</b></td><td class="num"><b>${money(sum('total'))}</b></td><td></td></tr>`; },
+    empty: `<div class="empty">${icon('calculator')}<div>No hay apuntes en ${periodName(r.period)}.</div><p>Sube y valida facturas emitidas y recibidas, o añade un apunte manual.</p></div>`,
+  });
 }
 
 // Gráfico mensual: barras de ingresos y gastos (una escala en €) y línea de beneficio
@@ -846,11 +917,6 @@ async function deleteEntry(id) {
 // ---------------------------------------------------------------- utilidades comunes de ejercicio
 const isoToEs = d => d ? d.split('-').reverse().join('/') : '—';
 const daysTo = d => Math.round((new Date(d + 'T12:00:00') - new Date(new Date().toISOString().slice(0, 10) + 'T12:00:00')) / 86400000);
-function fillYears(sel, years, keep) {
-  const cur = keep || $(sel).value || String(new Date().getFullYear());
-  const ys = [...new Set([new Date().getFullYear(), new Date().getFullYear() - 1, ...(years || [])])].sort((a, b) => b - a);
-  $(sel).innerHTML = ys.map(y => `<option ${String(y) === String(cur) ? 'selected' : ''}>${y}</option>`).join('');
-}
 function showBox(html) {
   const m = $('#modal');
   m.innerHTML = `<div class="modal-box">${html}</div>`;
@@ -858,222 +924,27 @@ function showBox(html) {
   $$('[data-close]', m).forEach(b => b.onclick = closeModal);
 }
 
-// ---------------------------------------------------------------- impuestos
-let tax = null;
-const TAX_STATE = {
-  presentado: '<span class="badge green">' + icon('circle-check') + 'Presentado</span>',
-  domiciliado: '<span class="badge green">' + icon('circle-check') + 'Domiciliado</span>',
-  vencido: '<span class="badge red">' + icon('circle-alert') + 'Vencido</span>',
-  pendiente: '<span class="badge amber">' + icon('clock') + 'Pendiente</span>',
-  futuro: '<span class="badge gray">Próximo</span>',
-  no_aplica: '<span class="badge gray">No aplica</span>',
-};
-async function loadTaxes() {
-  if (!$('#taxYear').options.length) { fillYears('#taxYear', []); $('#taxYear').onchange = loadTaxes; $('#taxBulk').onclick = bulkTaxes; }
-  try {
-    tax = await capi('/fiscal?year=' + $('#taxYear').value);
-    fillYears('#taxYear', tax.years, String(tax.year));
-    renderTaxes();
-  } catch (e) { toast(e.message, true); }
-}
-function renderTaxes() {
-  const t = tax, p = t.profile;
-  const notes = [];
-  if (!p.configured) notes.push(`Revisa tu <a href="#" onclick="go('config');return false">perfil fiscal</a>: se ha supuesto <b>${p.forma === 'sociedad' ? 'sociedad' : 'autónomo'}</b> en régimen general de IVA.`);
-  if (t.sinValidar) notes.push(`${t.sinValidar} factura${t.sinValidar > 1 ? 's' : ''} de ${t.year} sin validar: los importes son los leídos automáticamente.`);
-  if (t.reserve.overdue) notes.push(`${t.reserve.overdue} obligación${t.reserve.overdue > 1 ? 'es' : ''} con el plazo pasado sin marcar. Si ya las presentaste fuera de Gesty, usa "Marcar vencidos como presentados".`);
-  $('#taxNotice').innerHTML = notes.length ? `<div class="notice">${icon('info')}<div>${notes.join('<br>')}</div></div>` : '';
-  const card = (label, ic, v, foot) => `<div class="card"><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value" style="font-size:22px">${v}</div><div class="stat-foot">${foot}</div></div>`;
-  const n = t.next;
-  const req = t.calendar.filter(o => o.required);
-  $('#taxStats').innerHTML =
-    card('Próximo plazo', 'calendar-clock', n ? `Modelo ${n.modelo}` : 'Nada pendiente', n ? `${n.period} · hasta el ${isoToEs(n.deadline)} (${daysTo(n.deadline)} días)` : 'Al día') +
-    card('Reserva para impuestos', 'piggy-bank', money(t.reserve.total), 'Próximos pagos estimados') +
-    card('Pendientes', 'clock', req.filter(o => !o.status && o.open).length, 'Obligaciones sin presentar') +
-    card('Presentados', 'file-check', req.filter(o => o.status).length, `en ${t.year}`);
-  $('#taxCal').innerHTML = `<table class="table"><thead><tr><th>Plazo</th><th>Modelo</th><th>Periodo</th><th class="num">Resultado</th><th>Estado</th><th></th></tr></thead><tbody>
-    ${t.calendar.filter(o => o.state !== 'no_aplica' || o.result).map((o, i) => `<tr class="clickable" onclick="showTax(${t.calendar.indexOf(o)})" style="${o.state === 'no_aplica' ? 'opacity:.6' : ''}">
-      <td>${isoToEs(o.deadline)}${o.prevYear ? '<div class="muted">ejercicio anterior</div>' : ''}</td>
-      <td><b>${o.modelo}</b><div class="muted">${esc(o.name)}</div></td><td>${periodLabel(o)}</td>
-      <td class="num">${typeof o.result === 'number' ? money(o.result) : '—'}<div class="muted">${esc(o.resultLabel || '')}</div></td>
-      <td>${TAX_STATE[o.state] || ''}</td><td><button class="btn sm soft">Ver</button></td></tr>`).join('')}
-    </tbody></table>`;
-  $('#taxReserve').innerHTML = t.reserve.items.length ? `<div class="list">${t.reserve.items.map(i => `<div class="item"><div class="item-body"><b>Modelo ${i.modelo} · ${i.period === 'año' ? 'anual' : i.period}</b><p>${esc(i.name)} · hasta el ${isoToEs(i.deadline)}${i.estimate ? ' · estimación' : ''}</p></div><b style="font-variant-numeric:tabular-nums">${money(i.amount)}</b></div>`).join('')}</div>
-    <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:15px"><b>Total a reservar</b><b>${money(t.reserve.total)}</b></div>
-    <p class="muted" style="margin:8px 0 0">Incluye el IVA ya devengado y las retenciones practicadas, que no son dinero tuyo: guárdalo aparte hasta pagarlo.</p>`
-    : `<div class="empty">${icon('piggy-bank')}<div>No hay pagos pendientes estimados.</div></div>`;
-}
-const periodLabel = o => o.period === '0A' ? 'Anual' : o.period.endsWith('P') ? `${o.period[0]}.º pago` : `${o.period[0]}.º trimestre`;
-function showTax(i) {
-  const o = tax.calendar[i];
-  const year = Number(o.periodStart.slice(0, 4));
-  const rows = (o.casillas || []).map(c => `<tr><td class="muted" style="white-space:nowrap">${esc(c[0])}</td><td>${esc(c[1])}</td><td class="num"><b>${typeof c[2] === 'number' ? (Number.isInteger(c[2]) && !/importe|base|cuota|result|total|ingres|gasto|rend|pago|reten|percep|volumen|deduc|devengad/i.test(c[1]) ? c[2] : money(c[2])) : esc(c[2])}</b></td></tr>`).join('');
-  const f = o.filing;
-  showBox(`<div class="modal-head"><h3>Modelo ${o.modelo} · ${periodLabel(o)} ${year}</h3><button type="button" class="icon-btn" data-close title="Cerrar">${icon('x')}</button></div>
-    <p class="muted" style="margin:-8px 0 14px">${esc(o.name)} · plazo hasta el ${isoToEs(o.deadline)} ${TAX_STATE[o.state] || ''}</p>
-    ${rows ? `<div class="table-wrap"><table class="table" id="taxRows"><thead><tr><th>Casilla</th><th>Concepto</th><th class="num">Valor</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Sin datos para este periodo</div>'}
-    ${typeof o.result === 'number' ? `<div style="display:flex;justify-content:space-between;margin:12px 0;font-size:16px"><b>${esc(o.resultLabel)}</b><b>${money(o.result)}</b></div>` : ''}
-    ${(o.notes || []).map(n => `<div class="check warn">${icon('info')}<span>${esc(n)}</span></div>`).join('')}
-    <div class="card" style="margin-top:14px;box-shadow:none">
-      ${f ? `<div class="check ok">${icon('circle-check')}<span>${f.status === 'domiciliado' ? 'Domiciliado' : 'Presentado'} el ${isoToEs(f.presented_at)}${f.justificante ? ` · justificante ${esc(f.justificante)}` : ''}${f.amount !== null ? ` · ${money(f.amount)}` : ''}${f.notes ? ` · ${esc(f.notes)}` : ''}</span></div>
-        <div class="actions" style="margin-top:10px"><button class="btn" onclick="unfileTax(${i})">${icon('refresh-cw')}Volver a pendiente</button></div>`
-      : `<div class="card-title" style="margin-bottom:10px">Marcar como presentado</div>
-        <div class="form-grid" id="fileForm">
-          <div class="field"><label>Fecha</label><input name="presented_at" type="date" value="${new Date().toISOString().slice(0, 10)}"></div>
-          <div class="field"><label>Forma</label><select name="status"><option value="presentado">Presentado y pagado</option><option value="domiciliado">Presentado con domiciliación</option></select></div>
-          <div class="field"><label>Nº justificante / CSV</label><input name="justificante" placeholder="Opcional"></div>
-          <div class="field"><label>Importe (€)</label><input name="amount" inputmode="decimal" value="${typeof o.result === 'number' ? o.result : ''}"></div>
-        </div>
-        <div class="actions" style="margin-top:12px"><button class="btn primary" onclick="fileTax(${i})">${icon('check')}Marcar como presentado</button></div>`}
-    </div>
-    <div class="actions" style="margin-top:14px">
-      <button class="btn" onclick="copyTax(${i})">${icon('copy')}Copiar casillas</button>
-      <button class="btn" onclick="printTax(${i})">${icon('printer')}Imprimir borrador</button>
-      <a class="btn" href="https://sede.agenciatributaria.gob.es" target="_blank" rel="noopener">${icon('landmark')}Ir a la Sede Electrónica</a>
-    </div>`);
-}
-async function fileTax(i) {
-  const o = tax.calendar[i], f = Object.fromEntries($$('#fileForm [name]').map(x => [x.name, x.value]));
-  try {
-    await capi('/fiscal/filings', { method: 'POST', body: { modelo: o.modelo, year: Number(o.periodStart.slice(0, 4)), period: o.period, ...f, amount: f.amount === '' ? null : Number(String(f.amount).replace(',', '.')), snapshot: { casillas: o.casillas, result: o.result } } });
-    closeModal(); toast(`Modelo ${o.modelo} marcado como presentado`); loadTaxes();
-  } catch (e) { toast(e.message, true); }
-}
-async function unfileTax(i) {
-  const o = tax.calendar[i];
-  try { await capi('/fiscal/filings', { method: 'DELETE', body: { modelo: o.modelo, year: Number(o.periodStart.slice(0, 4)), period: o.period } }); closeModal(); toast('Vuelve a estar pendiente'); loadTaxes(); }
-  catch (e) { toast(e.message, true); }
-}
-function copyTax(i) {
-  const o = tax.calendar[i];
-  const txt = [`Modelo ${o.modelo} ${periodLabel(o)} ${o.periodStart.slice(0, 4)}`, ...(o.casillas || []).map(c => `${c[0]}\t${c[1]}\t${typeof c[2] === 'number' ? String(c[2]).replace('.', ',') : c[2]}`)].join('\n');
-  navigator.clipboard?.writeText(txt).then(() => toast('Casillas copiadas'), () => toast('No se ha podido copiar', true));
-}
-function printTax(i) {
-  const o = tax.calendar[i];
-  const w = open('', '_blank');
-  if (!w) return toast('Permite las ventanas emergentes para imprimir', true);
-  w.document.write(`<!doctype html><meta charset="utf-8"><title>Modelo ${o.modelo} ${periodLabel(o)} ${o.periodStart.slice(0, 4)}</title>
-    <style>body{font:13px/1.5 Arial,sans-serif;margin:32px;color:#111}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 8px;text-align:left}td.n{text-align:right}h1{font-size:20px}.m{color:#555}</style>
-    <h1>Modelo ${o.modelo} · ${esc(o.name)}</h1><p class="m">${periodLabel(o)} ${o.periodStart.slice(0, 4)} · plazo hasta el ${isoToEs(o.deadline)} · Borrador generado por Gesty el ${new Date().toLocaleDateString('es-ES')}</p>
-    <table><tr><th>Casilla</th><th>Concepto</th><th>Valor</th></tr>${(o.casillas || []).map(c => `<tr><td>${esc(c[0])}</td><td>${esc(c[1])}</td><td class="n">${typeof c[2] === 'number' ? c[2].toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : esc(c[2])}</td></tr>`).join('')}</table>
-    ${typeof o.result === 'number' ? `<p><b>${esc(o.resultLabel)}: ${money(o.result)}</b></p>` : ''}${(o.notes || []).map(n => `<p class="m">• ${esc(n)}</p>`).join('')}
-    <p class="m">Borrador orientativo. Compruébalo antes de presentarlo en la Sede Electrónica de la AEAT.</p><script>print()<\/script>`);
-  w.document.close();
-}
-async function bulkTaxes() {
-  if (!confirm('Se marcarán como presentados todos los modelos con el plazo ya vencido (por ejemplo, los que presentó tu gestoría antes de usar Gesty). ¿Continuar?')) return;
-  try { const r = await capi('/fiscal/filings/bulk', { method: 'POST', body: { year: Number($('#taxYear').value) } }); toast(`${r.count} modelos marcados como presentados`); loadTaxes(); }
-  catch (e) { toast(e.message, true); }
-}
-
-// ---------------------------------------------------------------- deducibilidad
-const DED_BADGE = {
-  si: '<span class="badge green">Deducible</span>', parcial: '<span class="badge amber">Parcial</span>', no: '<span class="badge red">No deducible</span>',
-  revisar: '<span class="badge amber">Revisar</span>', sin_iva: '<span class="muted">Sin IVA</span>',
-};
-async function loadDeductibility() {
-  if (!$('#dedYear').options.length) { fillYears('#dedYear', []); $('#dedYear').onchange = loadDeductibility; $('#dedQuarter').onchange = loadDeductibility; }
-  try {
-    const r = await capi(`/fiscal/deducibility?year=${$('#dedYear').value}${$('#dedQuarter').value ? '&quarter=' + $('#dedQuarter').value : ''}`);
-    fillYears('#dedYear', r.years, String(r.year));
-    if (!CATALOG) CATALOG = await capi('/categories');
-    const t = r.totals;
-    const card = (label, ic, v, foot) => `<div class="card"><div class="stat-top"><span>${label}</span><span class="stat-icon">${icon(ic)}</span></div><div class="stat-value" style="font-size:22px">${v}</div><div class="stat-foot">${foot}</div></div>`;
-    $('#dedStats').innerHTML =
-      card('Gasto deducible', 'circle-check', money(t.gastoDeducible), `de ${money(t.gastos)} de gastos`) +
-      card('No deducible', 'circle-x', money(t.noDeducible), 'Gasto que no reduce el impuesto') +
-      card('IVA recuperable', 'badge-percent', money(t.ivaDeducible), `de ${money(t.iva)} soportado`) +
-      card('A revisar', 'shield-alert', t.revisar, 'Gastos que dependen de su uso');
-    const catName = k => [...CATALOG.gasto, ...CATALOG.ingreso].find(x => x[0] === k)?.[1] || k;
-    $('#dedTable').innerHTML = r.rows.length ? `<table class="table"><thead><tr><th>Fecha</th><th>Proveedor / concepto</th><th class="num">Base</th><th>Gasto</th><th>IVA</th></tr></thead><tbody>
-      ${r.rows.map(x => `<tr class="${x.source === 'doc' ? 'clickable' : ''}" ${x.source === 'doc' ? `onclick="openDoc(${x.id})"` : ''}>
-        <td>${isoToEs(x.date)}</td><td><b>${esc(x.tercero || x.concepto)}</b><div class="muted">${esc(catName(x.category))}</div>${x.ded.motivos.map(m => `<div class="muted" style="margin-top:3px">• ${esc(m)}</div>`).join('')}</td>
-        <td class="num">${money(x.base)}</td><td>${DED_BADGE[x.ded.estado]}${x.ded.estado === 'parcial' ? `<div class="muted">${money(x.ded.gastoDeducible)}</div>` : ''}</td><td>${DED_BADGE[x.ded.ivaEstado]}${x.ded.ivaEstado === 'parcial' ? `<div class="muted">${money(x.ded.ivaDeducible)}</div>` : ''}</td></tr>`).join('')}
-      </tbody></table>` : `<div class="empty">${icon('badge-percent')}<div>No hay gastos en el periodo.</div></div>`;
-    const auto = r.profile.forma === 'autonomo';
-    const rules = [
-      ['Factura completa', 'Para deducir el IVA necesitas factura con tu NIF y domicilio. Los tickets sin tus datos solo valen como gasto.'],
-      ['Relación con la actividad', 'Solo es deducible lo que está vinculado a la actividad, correctamente registrado y justificado.'],
-      ['Vehículo', auto ? 'IVA al 50 %. El gasto solo si el uso es exclusivo (salvo transportistas, comerciales…).' : 'IVA al 50 % salvo uso exclusivo; el gasto es deducible si el vehículo es de la empresa.'],
-      ['Comidas y viajes', auto ? 'En desplazamientos de trabajo, pagados con tarjeta: hasta 26,67 €/día en España (53,34 € con pernocta).' : 'Deducibles si están vinculados a la actividad y justificados.'],
-      ...(auto ? [['Suministros de casa', 'Si trabajas en tu vivienda: 30 % de la parte afecta (luz, agua, internet). Indica el % en el perfil fiscal.'], ['Cuota de autónomo y seguros', 'La cuota de la Seguridad Social y el seguro de salud (hasta 500 €/año por persona) son deducibles.']] : []),
-      ['Inversiones', 'Maquinaria, equipos y mobiliario se deducen amortizándolos en varios años. El IVA se recupera entero.'],
-      ['No deducibles', 'Multas y sanciones, el propio IRPF o Impuesto sobre Sociedades, donativos y gastos personales.'],
-    ];
-    $('#dedRules').innerHTML = `<div class="list">${rules.map(([h, b]) => `<div class="item" style="align-items:flex-start">${icon('info')}<div class="item-body"><b>${h}</b><p style="white-space:normal">${b}</p></div></div>`).join('')}</div>`;
-  } catch (e) { toast(e.message, true); }
-}
-
-// ---------------------------------------------------------------- libros registro
-let bookKind = 'emitidas';
-async function loadBooks() {
-  if (!$('#bookYear').options.length) {
-    fillYears('#bookYear', []); $('#bookYear').onchange = loadBooks; $('#bookQuarter').onchange = loadBooks;
-    $$('#bookTabs button').forEach(b => b.onclick = () => { bookKind = b.dataset.kind; $$('#bookTabs button').forEach(x => x.classList.toggle('active', x === b)); loadBooks(); });
-  }
-  try {
-    const r = await capi(`/books?year=${$('#bookYear').value}&kind=${bookKind}${$('#bookQuarter').value ? '&quarter=' + $('#bookQuarter').value : ''}`);
-    fillYears('#bookYear', r.years, String(r.year));
-    const tot = k => r.rows.reduce((a, e) => a + (e[k] || 0), 0);
-    $('#bookTable').innerHTML = r.rows.length ? `<table class="table"><thead><tr><th>Nº</th><th>Fecha</th><th>Nº factura</th><th>${bookKind === 'emitidas' ? 'Cliente' : 'Proveedor'}</th><th>NIF</th><th class="num">Base</th><th class="num">% IVA</th><th class="num">Cuota</th><th class="num">Retención</th><th class="num">Total</th>${bookKind === 'recibidas' ? '<th class="num">IVA deducible</th>' : ''}</tr></thead><tbody>
-      ${r.rows.map(e => `<tr class="clickable" onclick="openDoc(${e.id})"><td>${e.orden}</td><td>${isoToEs(e.date)}</td><td>${esc(e.numero || '—')}${e.doc_type === 'rectificativa' ? ' <span class="badge gray">Rect.</span>' : ''}${e.validated ? '' : ' <span class="badge amber">Sin validar</span>'}</td><td>${esc(e.tercero || '—')}</td><td>${esc(e.nif || '—')}</td>
-        <td class="num">${money(e.base)}</td><td class="num">${e.ivaRate ?? '—'}</td><td class="num">${money(e.iva)}</td><td class="num">${e.retencion ? money(e.retencion) : '—'}</td><td class="num">${money(e.total)}</td>${bookKind === 'recibidas' ? `<td class="num">${money(e.ivaDeducible)}</td>` : ''}</tr>`).join('')}
-      <tr><td colspan="5"><b>Totales (${r.rows.length} facturas)</b></td><td class="num"><b>${money(tot('base'))}</b></td><td></td><td class="num"><b>${money(tot('iva'))}</b></td><td class="num"><b>${money(tot('retencion'))}</b></td><td class="num"><b>${money(tot('total'))}</b></td>${bookKind === 'recibidas' ? `<td class="num"><b>${money(tot('ivaDeducible'))}</b></td>` : ''}</tr>
-      </tbody></table>` : `<div class="empty">${icon('book-open')}<div>No hay facturas ${bookKind} en el periodo.</div></div>`;
-  } catch (e) { toast(e.message, true); }
-}
-function exportBook() {
-  const q = new URLSearchParams({ year: $('#bookYear').value, kind: bookKind, format: 'csv' });
-  if ($('#bookQuarter').value) q.set('quarter', $('#bookQuarter').value);
-  if (CID) q.set('cid', CID);
-  location.href = '/api/c/books?' + q;
-}
-
 // ---------------------------------------------------------------- historial
-let actEntity = '';
+const ENTITY_LABEL = { documento: 'Documento', apunte: 'Apunte manual', impuesto: 'Impuesto', empresa: 'Configuración', contacto: 'Cliente / proveedor' };
 async function loadActivity() {
-  $$('#actTabs button').forEach(b => b.onclick = () => { actEntity = b.dataset.entity; $$('#actTabs button').forEach(x => x.classList.toggle('active', x === b)); loadActivity(); });
   try {
-    const rows = await capi('/activity' + (actEntity ? '?entity=' + actEntity : ''));
-    $('#actTable').innerHTML = rows.length ? `<table class="table"><thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>
-      ${rows.map(a => `<tr class="${a.entity === 'documento' && a.entity_id ? 'clickable' : ''}" ${a.entity === 'documento' && a.entity_id && !/eliminado/.test(a.action) ? `onclick="openDoc(${a.entity_id})"` : ''}>
-        <td style="white-space:nowrap">${new Date(a.created_at.replace(' ', 'T') + 'Z').toLocaleString('es-ES')}</td><td>${esc(a.user_name || '—')}</td><td><b>${esc(a.action)}</b></td><td class="muted" style="white-space:normal;max-width:520px">${esc(a.detail || '')}</td></tr>`).join('')}
-      </tbody></table>` : `<div class="empty">${icon('scroll-text')}<div>Sin actividad registrada todavía.</div></div>`;
+    const rows = await capi('/activity?limit=500');
+    const when = a => a.created_at.replace(' ', 'T') + 'Z';
+    dataTable('#actTable', {
+      id: 'activity', rows, sort: { key: 'created_at', dir: 'desc' },
+      columns: [
+        { key: 'created_at', label: 'Fecha y hora', type: 'date', get: a => { const d = new Date(when(a)), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`; },
+          html: a => `<span style="white-space:nowrap">${new Date(when(a)).toLocaleString('es-ES')}</span>` },
+        { key: 'user_name', label: 'Usuario', type: 'enum' },
+        { key: 'entity', label: 'Sobre', type: 'enum', label_of: v => ENTITY_LABEL[v] || v },
+        { key: 'action', label: 'Acción', html: a => `<b>${esc(a.action)}</b>` },
+        { key: 'detail', label: 'Detalle', html: a => `<span class="muted" style="white-space:normal;display:block;max-width:520px">${esc(a.detail || '')}</span>` },
+      ],
+      onRow: a => a.entity === 'documento' && a.entity_id && !/eliminado/.test(a.action) ? `openDoc(${a.entity_id})` : null,
+      empty: `<div class="empty">${icon('scroll-text')}<div>Sin actividad registrada todavía.</div></div>`,
+    });
   } catch (e) { toast(e.message, true); }
 }
-
-// ---------------------------------------------------------------- perfil fiscal
-async function loadFiscalProfile() {
-  const p = await capi('/fiscal/profile').catch(e => toast(e.message, true));
-  if (!p) return;
-  const yes = (name, label, v) => field(name, label, { value: v ? '1' : '', options: [['', 'No'], ['1', 'Sí']] });
-  $('#fiscalForm').innerHTML = `<div class="card-title" style="margin-bottom:4px">Perfil fiscal</div><div class="muted" style="margin-bottom:14px">Determina qué impuestos presentas y cómo se calculan.${p.configured ? '' : ' <b>Sin revisar todavía.</b>'}</div>
-    <div class="form-grid">
-      ${field('forma', 'Forma jurídica', { value: p.forma, options: [['autonomo', 'Autónomo (persona física)'], ['sociedad', 'Sociedad (S.L., S.A.…)']] })}
-      ${field('regimen_iva', 'Régimen de IVA', { value: p.regimen_iva, options: [['general', 'General'], ['recargo', 'Recargo de equivalencia (comercio minorista)'], ['exento', 'Actividad exenta']] })}
-      <div class="field full sec-auto"><div class="section-label" style="padding:6px 0 0">Autónomo</div></div>
-      <div class="sec-auto">${field('irpf_modalidad', 'Estimación directa', { value: p.irpf_modalidad, options: [['simplificada', 'Simplificada'], ['normal', 'Normal']] })}</div>
-      <div class="sec-auto">${yes('exento_130', 'Exento del 130 (≥70 % ingresos con retención)', p.exento_130)}</div>
-      <div class="sec-auto">${yes('trabaja_en_casa', 'Trabajo desde mi vivienda', p.trabaja_en_casa)}</div>
-      <div class="sec-auto">${field('pct_vivienda', '% de la vivienda afecto', { value: p.pct_vivienda })}</div>
-      <div class="field full sec-soc"><div class="section-label" style="padding:6px 0 0">Sociedad</div></div>
-      <div class="sec-soc">${field('is_tipo', 'Tipo del Impuesto sobre Sociedades', { value: p.is_tipo, options: [[25, '25 % (general)'], [23, '23 % (cifra de negocio < 1 M€)'], [15, '15 % (entidades de nueva creación)']] })}</div>
-      <div class="sec-soc">${field('is_ultima_cuota', 'Cuota del último IS (€, para el 202)', { value: p.is_ultima_cuota ?? '' })}</div>
-      <div class="field full"><div class="section-label" style="padding:6px 0 0">Retenciones</div></div>
-      ${yes('tiene_empleados', 'Tengo trabajadores (111)', p.tiene_empleados)}
-      ${yes('alquila_local', 'Alquilo un local con retención (115)', p.alquila_local)}
-    </div><div class="actions" style="margin-top:16px"><button class="btn primary" type="submit">${icon('check')}Guardar perfil fiscal</button></div>`;
-  const f = $('#fiscalForm');
-  const toggle = () => { $$('#fiscalForm .sec-auto').forEach(x => x.classList.toggle('hidden', f.forma.value !== 'autonomo')); $$('#fiscalForm .sec-soc').forEach(x => x.classList.toggle('hidden', f.forma.value !== 'sociedad')); };
-  f.forma.onchange = toggle; toggle();
-}
-$('#fiscalForm').onsubmit = async e => {
-  e.preventDefault();
-  const d = Object.fromEntries(new FormData(e.target));
-  for (const k of ['exento_130', 'trabaja_en_casa', 'tiene_empleados', 'alquila_local']) d[k] = d[k] === '1';
-  try { await capi('/fiscal/profile', { method: 'PUT', body: d }); toast('Perfil fiscal guardado'); } catch (err) { toast(err.message, true); }
-};
 
 // ---------------------------------------------------------------- trazabilidad en la revisión
 async function loadDocExtras(d) {
@@ -1276,12 +1147,26 @@ async function loadContacts() {
   try {
     contacts = await capi('/contacts');
     const rows = contacts.filter(c => !ctKind || c.kind === ctKind || c.kind === 'ambos');
-    const kindB = k => k === 'cliente' ? '<span class="badge teal">Cliente</span>' : k === 'proveedor' ? '<span class="badge gray">Proveedor</span>' : '<span class="badge green">Cliente y proveedor</span>';
-    $('#ctTable').innerHTML = rows.length ? `<table class="table"><thead><tr><th>Nombre</th><th>NIF</th><th>Tipo</th><th>Contacto</th><th class="num">Ventas</th><th class="num">Compras</th><th class="num">Pendiente</th><th></th></tr></thead><tbody>
-      ${rows.map(c => `<tr class="clickable" onclick="editContact(${c.id})"><td><b>${esc(c.name)}</b><div class="muted">${esc([c.address, c.postal_city].filter(Boolean).join(', '))}</div></td><td>${esc(c.nif || '—')}</td><td>${kindB(c.kind)}</td>
-        <td class="muted">${esc([c.email, c.phone].filter(Boolean).join(' · ') || '—')}</td><td class="num">${c.ventas ? money(c.ventas) : '—'}</td><td class="num">${c.compras ? money(c.compras) : '—'}</td><td class="num">${c.pendiente ? money(c.pendiente) : '—'}</td>
-        <td>${c.kind !== 'proveedor' ? `<button class="btn sm soft" onclick="event.stopPropagation();quickSale(${c.id})">${icon('file-plus')}Factura</button>` : ''}</td></tr>`).join('')}</tbody></table>`
-      : `<div class="empty">${icon('contact')}<div>Todavía no hay contactos.</div><p>Se crean al emitir documentos, o impórtalos de los documentos que ya has subido.</p></div>`;
+    dataTable('#ctTable', {
+      id: 'contacts', rows, sort: { key: 'name', dir: 'asc' },
+      columns: [
+        { key: 'name', label: 'Nombre', html: c => `<b>${esc(c.name)}</b><div class="muted">${esc([c.address, c.postal_city].filter(Boolean).join(', '))}</div>` },
+        { key: 'nif', label: 'NIF / CIF' },
+        { key: 'kind', label: 'Tipo', type: 'enum', label_of: v => v === 'cliente' ? 'Cliente' : v === 'proveedor' ? 'Proveedor' : 'Cliente y proveedor', html: c => kindBadge(c.kind) },
+        { key: 'address', label: 'Dirección', hidden: true },
+        { key: 'postal_city', label: 'Código postal y localidad', hidden: true },
+        { key: 'email', label: 'Email' },
+        { key: 'phone', label: 'Teléfono' },
+        { key: 'notes', label: 'Notas', hidden: true },
+        { key: 'ventas', label: 'Ventas', type: 'money', cls: 'num', html: c => c.ventas ? money(c.ventas) : '—' },
+        { key: 'compras', label: 'Compras', type: 'money', cls: 'num', html: c => c.compras ? money(c.compras) : '—' },
+        { key: 'pendiente', label: 'Pendiente', type: 'money', cls: 'num', html: c => c.pendiente ? money(c.pendiente) : '—' },
+        { key: 'created_at', label: 'Alta', type: 'date', hidden: true },
+        { key: 'act', label: '', sort: false, filter: false, get: () => '', html: c => c.kind !== 'proveedor' ? `<button class="btn sm soft" onclick="event.stopPropagation();quickSale(${c.id})">${icon('file-plus')}Factura</button>` : '' },
+      ],
+      onRow: c => `editContact(${c.id})`,
+      empty: `<div class="empty">${icon('contact')}<div>Todavía no hay contactos.</div><p>Se crean al validar capturas y al emitir documentos, o impórtalos de los documentos que ya has subido.</p></div>`,
+    });
   } catch (e) { toast(e.message, true); }
 }
 function editContact(id) {
@@ -1298,89 +1183,6 @@ async function deleteContact(id) { if (!confirm('¿Eliminar este contacto? Sus d
 async function importContacts() { try { const r = await capi('/contacts/import', { method: 'POST' }); toast(`${r.added} contactos añadidos`); loadContacts(); } catch (e) { toast(e.message, true); } }
 async function quickSale(id) { const c = contacts.find(x => x.id === id); await newSale('factura'); Object.assign(sale.draft.party, { name: c.name, nif: c.nif, address: c.address, postal_city: c.postal_city, email: c.email }); renderEditor(); }
 
-// ---------------------------------------------------------------- artículos
-async function loadProducts() {
-  try {
-    products = await capi('/products');
-    $('#prTable').innerHTML = products.length ? `<table class="table"><thead><tr><th>Artículo o servicio</th><th>Referencia</th><th class="num">Precio</th><th>IVA</th><th>Unidad</th></tr></thead><tbody>
-      ${products.map(p => `<tr class="clickable" onclick="editProduct(${p.id})"><td><b>${esc(p.name)}</b></td><td>${esc(p.ref || '—')}</td><td class="num">${money(p.price)}</td><td>${p.iva} %</td><td>${esc(p.unit || '—')}</td></tr>`).join('')}</tbody></table>`
-      : `<div class="empty">${icon('package')}<div>Añade los productos o servicios que vendes habitualmente.</div></div>`;
-  } catch (e) { toast(e.message, true); }
-}
-function editProduct(id) {
-  const p = products.find(x => x.id === id) || { iva: 21 };
-  openModal(id ? 'Editar artículo' : 'Nuevo artículo o servicio', [
-    field('name', 'Nombre', { value: p.name, required: true, full: true }), field('ref', 'Referencia', { value: p.ref }), field('unit', 'Unidad (ud, h, kg…)', { value: p.unit }),
-    field('price', 'Precio sin IVA (€)', { value: p.price ?? '' }), field('iva', 'IVA', { value: p.iva, options: [[21, '21 %'], [10, '10 %'], [5, '5 %'], [4, '4 %'], [0, '0 %']] }),
-    id ? `<div class="field full"><button type="button" class="btn danger" onclick="deleteProduct(${id})">${icon('trash')}Eliminar</button></div>` : '',
-  ].join(''), async data => { await capi(id ? '/products/' + id : '/products', { method: id ? 'PATCH' : 'POST', body: data }); toast('Artículo guardado'); loadProducts(); });
-}
-async function deleteProduct(id) { if (!confirm('¿Eliminar este artículo?')) return; try { await capi('/products/' + id, { method: 'DELETE' }); closeModal(); loadProducts(); } catch (e) { toast(e.message, true); } }
-
-// ---------------------------------------------------------------- contabilidad general
-let gl = null, glView = 'pyg';
-async function loadLedger() {
-  if (!$('#glYear').options.length) {
-    fillYears('#glYear', []); ['#glYear', '#glValidated'].forEach(x => $(x).onchange = loadLedger);
-    $$('#glTabs button').forEach(b => b.onclick = () => { glView = b.dataset.view; $$('#glTabs button').forEach(x => x.classList.toggle('active', x === b)); renderLedger(); });
-  }
-  $('#glBody').innerHTML = '<div class="empty"><span class="spinner"></span></div>';
-  try {
-    gl = await capi(`/ledger?year=${$('#glYear').value}${$('#glValidated').checked ? '&validated=1' : ''}`);
-    fillYears('#glYear', gl.years, String(gl.year));
-    const notes = [];
-    if (gl.balance.tesoreriaNegativa) notes.push('El banco sale en negativo: indica los <b>saldos iniciales</b> (dinero en el banco, capital…) del primer año que registras en Gesty.');
-    if (!gl.totals.cuadra) notes.push('El diario no cuadra: revisa los documentos incompletos.');
-    if (!gl.yearEnded) notes.push(`Ejercicio ${gl.year} en curso: la amortización se calcula hasta hoy y el resultado es provisional.`);
-    $('#glNotice').innerHTML = notes.length ? `<div class="notice">${icon('info')}<div>${notes.join('<br>')}</div></div>` : '';
-    renderLedger();
-  } catch (e) { toast(e.message, true); }
-}
-const amt = v => (v ? money(v) : '');
-function renderLedger() {
-  const g = gl, el = $('#glBody');
-  if (!g) return;
-  const statement = (rows, head) => `<table class="table">${head ? `<thead><tr><th></th><th>${head}</th><th class="num">${g.year}</th></tr></thead>` : ''}<tbody>${rows.map(r => `<tr style="${r[3] ? 'font-weight:800;background:var(--panel-2)' : ''}"><td class="muted" style="width:70px">${esc(r[0])}</td><td>${esc(r[1])}</td><td class="num">${money(r[2])}</td></tr>`).join('')}</tbody></table>`;
-  if (glView === 'pyg') el.innerHTML = statement(g.pyg, 'Cuenta de pérdidas y ganancias') + `<p class="muted" style="margin:10px 0 0">Modelo abreviado de PYMES. El impuesto sobre beneficios es una estimación.</p>`;
-  else if (glView === 'balance') el.innerHTML = `<div class="grid halves"><div>${statement(g.balance.activo, 'Activo')}</div><div>${statement(g.balance.pasivo, 'Patrimonio neto y pasivo')}</div></div>
-    <p class="muted" style="margin:10px 0 0">${g.balance.cuadra ? `${icon('circle-check')} El balance cuadra.` : 'El balance no cuadra: revisa los saldos iniciales.'} Situación a ${g.yearEnded ? '31/12/' + g.year : 'hoy'}.</p>`;
-  else if (glView === 'diario') el.innerHTML = `<div class="table-wrap"><table class="table"><thead><tr><th>Nº</th><th>Fecha</th><th>Cuenta</th><th>Concepto</th><th class="num">Debe</th><th class="num">Haber</th></tr></thead><tbody>
-    ${g.journal.map(e => e.lines.map((l, i) => `<tr ${e.ref?.doc ? `class="clickable" onclick="openDoc(${e.ref.doc})"` : ''} style="${i === 0 ? 'border-top:2px solid var(--line)' : ''}"><td>${i === 0 ? e.n : ''}</td><td style="white-space:nowrap">${i === 0 ? isoToEs(e.date) : ''}</td><td><b>${l.a}</b> <span class="muted">${esc(l.name)}</span></td><td class="muted">${i === 0 ? esc(e.concepto) : ''}</td><td class="num">${amt(l.d)}</td><td class="num">${amt(l.h)}</td></tr>`).join('')).join('')}
-    <tr><td colspan="4"><b>Sumas (${g.journal.length} asientos)</b></td><td class="num"><b>${money(g.totals.debe)}</b></td><td class="num"><b>${money(g.totals.haber)}</b></td></tr></tbody></table></div>`;
-  else if (glView === 'mayor') el.innerHTML = g.ledger.map(m => `<details class="card" style="box-shadow:none;margin-bottom:8px;padding:12px"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:10px"><span><b>${m.account}</b> ${esc(m.name)}</span><span style="font-variant-numeric:tabular-nums">Saldo <b>${money(Math.abs(m.saldo))}</b> ${m.saldo > 0 ? 'deudor' : m.saldo < 0 ? 'acreedor' : ''}</span></summary>
-    <div class="table-wrap"><table class="table" style="margin-top:8px"><thead><tr><th>Asiento</th><th>Fecha</th><th>Concepto</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo</th></tr></thead><tbody>
-    ${m.moves.map(mv => `<tr><td>${mv.n}</td><td>${isoToEs(mv.date)}</td><td class="muted">${esc(mv.concepto)}</td><td class="num">${amt(mv.d)}</td><td class="num">${amt(mv.h)}</td><td class="num">${money(mv.saldo)}</td></tr>`).join('')}</tbody></table></div></details>`).join('') || '<div class="empty">Sin movimientos</div>';
-  else el.innerHTML = `<div class="table-wrap"><table class="table"><thead><tr><th>Cuenta</th><th class="num">Debe</th><th class="num">Haber</th><th class="num">Saldo deudor</th><th class="num">Saldo acreedor</th></tr></thead><tbody>
-    ${g.trial.map(m => `<tr><td><b>${m.account}</b> <span class="muted">${esc(m.name)}</span></td><td class="num">${money(m.d)}</td><td class="num">${money(m.h)}</td><td class="num">${amt(m.deudor)}</td><td class="num">${amt(m.acreedor)}</td></tr>`).join('')}
-    <tr><td><b>Total</b></td><td class="num"><b>${money(g.totals.debe)}</b></td><td class="num"><b>${money(g.totals.haber)}</b></td><td class="num"><b>${money(g.trial.reduce((a, m) => a + m.deudor, 0))}</b></td><td class="num"><b>${money(g.trial.reduce((a, m) => a + m.acreedor, 0))}</b></td></tr></tbody></table></div>`;
-}
-function exportLedger() {
-  const q = new URLSearchParams({ year: $('#glYear').value, book: glView === 'mayor' ? 'mayor' : glView === 'sumas' ? 'sumas' : 'diario' });
-  if ($('#glValidated').checked) q.set('validated', '1');
-  if (CID) q.set('cid', CID);
-  location.href = '/api/c/ledger.csv?' + q;
-}
-function printLedger() {
-  const w = open('', '_blank');
-  if (!w) return toast('Permite las ventanas emergentes para imprimir', true);
-  const titles = { pyg: 'Cuenta de pérdidas y ganancias', balance: 'Balance de situación', diario: 'Libro diario', mayor: 'Libro mayor', sumas: 'Balance de sumas y saldos' };
-  w.document.write(`<!doctype html><meta charset="utf-8"><title>${titles[glView]} ${gl.year}</title><style>body{font:12px/1.45 Arial,sans-serif;margin:28px;color:#111}table{border-collapse:collapse;width:100%;margin-bottom:14px}td,th{border-bottom:1px solid #ddd;padding:5px 7px;text-align:left}.num{text-align:right}.muted{color:#666}h1{font-size:18px}details{margin-bottom:10px}summary{font-weight:bold}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}svg{display:none}</style>
-    <h1>${titles[glView]} · ejercicio ${gl.year}</h1><p class="muted">${esc($('#meName').textContent)} · generado por Gesty el ${new Date().toLocaleDateString('es-ES')}</p>${$('#glBody').innerHTML.replace(/<details/g, '<details open')}<script>print()<\/script>`);
-  w.document.close();
-}
-function editOpening() {
-  const year = Number($('#glYear').value);
-  const cur = Object.fromEntries((gl?.openings || []).map(o => [o.account, o.amount]));
-  const f = (acc, label, sign = 1) => field('a' + acc, label, { value: cur[acc] ? Math.abs(cur[acc]) : '' });
-  openModal(`Saldos iniciales a 1 de enero de ${year}`, `<p class="muted full" style="grid-column:1/-1;margin:0">Lo que tenía la empresa al empezar a registrar en Gesty. La diferencia se lleva al patrimonio (cuenta 120).</p>
-    ${f(572, 'Dinero en el banco (€)')}${f(100, 'Capital social (€)')}${f(213, 'Maquinaria y equipos (valor neto, €)')}${f(430, 'Clientes pendientes de cobro (€)')}${f(400, 'Proveedores pendientes de pago (€)')}${f(4750, 'IVA pendiente de pagar (€)')}`,
-    async data => {
-      const n = v => Number(String(v || 0).replace(',', '.')) || 0;
-      const items = [['572', n(data.a572)], ['100', -n(data.a100)], ['213', n(data.a213)], ['430', n(data.a430)], ['400', -n(data.a400)], ['4750', -n(data.a4750)]].map(([account, amount]) => ({ account, amount }));
-      await capi('/ledger/opening', { method: 'PUT', body: { year, items } }); toast('Saldos iniciales guardados'); loadLedger();
-    });
-}
-
 // ---------------------------------------------------------------- inicio
 async function init() {
   const me = await api('/api/me');
@@ -1388,7 +1190,6 @@ async function init() {
   if (me.role === 'admin') {
     $('#adminBanner').classList.remove('hidden');
     $('#adminBanner').innerHTML = `<span>${icon('shield-check')} Estás viendo el panel de <b>${esc(company.name)}</b> como administrador</span><a href="/admin">Volver al panel de administrador</a>`;
-    $('#pwdForm').classList.add('hidden');
   }
   $('#meName').textContent = company.name;
   $('#meRole').textContent = me.role === 'admin' ? 'Vista de administrador' : me.email;
